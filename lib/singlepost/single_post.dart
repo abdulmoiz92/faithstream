@@ -17,16 +17,23 @@ class SingleBlogPost extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appBar = AppBar(
-      title: Text("FaithStream"),
-    );
-
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: Colors.black),
+            onPressed: () => Navigator.of(context).pop()),
+        title: Text(
+          "Playing Video",
+          textAlign: TextAlign.left,
+          style: TextStyle(color: Colors.black87, fontSize: 18),
+        ),
+        backgroundColor: Colors.white,
+      ),
       body: Container(
-        margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
         child: LayoutBuilder(
           builder: (cntx, constraints) {
-            var imageContainer =  Container(
+            var imageContainer = Container(
               width: double.infinity,
               height: constraints.maxHeight * 0.35,
               decoration: BoxDecoration(
@@ -34,47 +41,58 @@ class SingleBlogPost extends StatelessWidget {
                     bottomLeft: Radius.circular(20),
                     bottomRight: Radius.circular(20)),
                 image: DecorationImage(
-                    image: singleBlog != null ? singleBlog.image == null
-                        ? AssetImage("assets/images/astrounat.png")
-                        : NetworkImage(singleBlog.image) : trendingPost.image == null
-                        ? AssetImage("assets/images/astrounat.png")
-                        : NetworkImage(trendingPost.image) ,
+                    image: singleBlog != null
+                        ? singleBlog.image == null
+                            ? AssetImage("assets/images/astrounat.png")
+                            : NetworkImage(singleBlog.image)
+                        : trendingPost.image == null
+                            ? AssetImage("assets/images/astrounat.png")
+                            : NetworkImage(trendingPost.image),
                     fit: BoxFit.fill),
               ),
             );
             return Column(
               children: <Widget>[
                 Container(
+                  padding: EdgeInsets.all(0),
                   width: double.infinity,
-                  height: constraints.maxHeight * 0.35,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20)),
-                  ),
-                  child: singleBlog != null ? singleBlog.videoUrl == null ? imageContainer :VideoPlayerScreen(url: singleBlog.videoUrl,) : VideoPlayerScreen(url: trendingPost.videoUrl),
+                  height: constraints.maxHeight * 0.39,
+                  decoration: BoxDecoration(),
+                  child: singleBlog != null
+                      ? singleBlog.videoUrl == null
+                          ? imageContainer
+                          : Hero(
+                            tag: "VideoImage",
+                            child: VideoPlayerScreen(
+                                url: singleBlog.videoUrl,
+                              ),
+                          )
+                      : VideoPlayerScreen(url: trendingPost.videoUrl),
                 ),
                 Container(
                     width: double.infinity,
-                    height: constraints.maxHeight * 0.65,
-                    child: trendingPost == null ? SinglePostContent(
-                      authorImage: singleBlog.authorImage,
-                      authorName: singleBlog.author,
-                      authorSubscribers: singleBlog.subscribers,
-                      title: singleBlog.title,
-                      postViews: singleBlog.views,
-                      postedDate: new DateFormat.yMMMd().format(DateTime.parse(singleBlog.date)),
-                      postDescription: "Something",
-                    ) : SinglePostContent(
-                      authorImage: trendingPost.authorImage,
-                      authorName: trendingPost.author,
-                      authorSubscribers: trendingPost.subscribers,
-                      title: trendingPost.title,
-                      postViews: trendingPost.views,
-                      postedDate: new DateFormat.yMMMd().format(DateTime.parse(trendingPost.date)),
-                      postDescription: "Something",
-                    )
-                ),
+                    height: constraints.maxHeight * 0.61,
+                    child: trendingPost == null
+                        ? SinglePostContent(
+                            authorImage: singleBlog.authorImage,
+                            authorName: singleBlog.author,
+                            authorSubscribers: singleBlog.subscribers,
+                            title: singleBlog.title,
+                            postViews: singleBlog.views,
+                            postedDate: new DateFormat.yMMMd()
+                                .format(DateTime.parse(singleBlog.date)),
+                            postDescription: "Something",
+                          )
+                        : SinglePostContent(
+                            authorImage: trendingPost.authorImage,
+                            authorName: trendingPost.author,
+                            authorSubscribers: trendingPost.subscribers,
+                            title: trendingPost.title,
+                            postViews: trendingPost.views,
+                            postedDate: new DateFormat.yMMMd()
+                                .format(DateTime.parse(trendingPost.date)),
+                            postDescription: "Something",
+                          )),
               ],
             );
           },
@@ -83,6 +101,5 @@ class SingleBlogPost extends StatelessWidget {
     );
   }
 }
-
 
 /**/

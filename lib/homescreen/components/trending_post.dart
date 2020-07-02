@@ -1,14 +1,16 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:faithstream/homescreen/components/your_blogs.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/singlepost/single_post.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class TrendingPosts extends StatelessWidget {
   final List<TPost> trendingPosts;
 
-  TrendingPosts(@required this.trendingPosts);
+  TrendingPosts({@required this.trendingPosts});
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +21,147 @@ class TrendingPosts extends StatelessWidget {
               scrollDirection: Axis.vertical,
               itemCount: trendingPosts.length,
               itemBuilder: (cntx, index) {
+                Widget videoPostWidget = Column(
+                  children: <Widget>[
+                    Center(
+                      child: trendingPosts[index].image != null
+                          ? CachedNetworkImage(
+                              placeholder: (context, url) => Container(
+                                width: constraints.maxWidth * 0.9,
+                                height: constraints.maxHeight * 0.4,
+                                child: Image.asset("assets/images/loading.gif"),
+                              ),
+                              imageUrl: trendingPosts[index].image,
+                              imageBuilder: (context, imageProvider) =>
+                                  GestureDetector(
+                                onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (cntx) => SingleBlogPost(
+                                              trendingPost:
+                                                  trendingPosts[index],
+                                            ))),
+                                child: Container(
+                                  width: constraints.maxWidth * 0.95,
+                                  height: constraints.maxHeight * 0.4,
+                                  decoration: BoxDecoration(
+                                    image: DecorationImage(
+                                        image: imageProvider,
+                                        fit: BoxFit.fill,
+                                        colorFilter: ColorFilter.mode(
+                                            Colors.black.withOpacity(0.4),
+                                            BlendMode.darken)),
+                                  ),
+                                  child: Container(
+                                    height: double.infinity,
+                                    child: Column(
+                                      children: <Widget>[
+                                        Spacer(),
+                                        Center(
+                                          child: Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                borderRadius:
+                                                    BorderRadius.circular(50)),
+                                            child: Center(
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
+                                                child: Icon(
+                                                  Icons.play_arrow,
+                                                  color: Colors.white,
+                                                  size: 40,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Spacer(),
+                                        Align(
+                                          alignment: Alignment.bottomRight,
+                                          child: Container(
+                                            margin: EdgeInsets.all(8.0),
+                                            height: 20,
+                                            child: Text("0:38",
+                                                style: TextStyle(
+                                                    color: Colors.white)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Container(
+                                width: constraints.maxWidth * 0.95,
+                                height: constraints.maxHeight * 0.4,
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                      image: AssetImage(
+                                          "assets/images/laptop.png"),
+                                      fit: BoxFit.fill,
+                                      colorFilter: ColorFilter.mode(
+                                          Colors.black.withOpacity(0.4),
+                                          BlendMode.darken)),
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius:
+                                            BorderRadius.circular(50)),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Icon(
+                                        Icons.play_arrow,
+                                        color: Colors.white,
+                                        size: 40,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                    Container(
+                      width: double.infinity,
+                      margin: EdgeInsets.only(
+                        top: constraints.maxHeight * 0.02,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: constraints.maxWidth * 0.03),
+                      child: Text(trendingPosts[index].title,
+                          style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        width: constraints.maxWidth * 0.6,
+                        margin:
+                            EdgeInsets.only(top: constraints.maxHeight * 0.02),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: constraints.maxWidth * 0.03),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            buildIconText(context, "${trendingPosts[index].views}", Icons.remove_red_eye, 3.0, Colors.black54),
+                            SizedBox(width: constraints.maxWidth * 0.02),
+                            buildIconText(context, "${DateFormat.yMMMd().format(DateTime.parse(trendingPosts[index].date))}", Icons.watch_later, 3.0, Colors.black54)
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -28,87 +171,25 @@ class TrendingPosts extends StatelessWidget {
                                   trendingPost: trendingPosts[index],
                                 )));
                   },
-                  child: Container(
-                    margin:
-                        EdgeInsets.only(bottom: constraints.maxHeight * 0.10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: <Widget>[
-                        Container(
-                          width: constraints.maxWidth * 0.4,
-                          height: constraints.maxHeight * 0.6,
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                                image: trendingPosts[index].image == null
-                                    ? AssetImage("assets/images/laptop.png")
-                                    : NetworkImage(trendingPosts[index].image),
-                                fit: BoxFit.fill),
-                            borderRadius: BorderRadius.circular(15),
+                  child: Center(
+                    child: Container(
+                      margin: EdgeInsets.symmetric(
+                          vertical: constraints.maxHeight * 0.03),
+                      width: constraints.maxWidth * 0.95,
+                      child: Wrap(
+                        children: <Widget>[
+                          Card(
+                            shape: RoundedRectangleBorder(),
+                            elevation: 6,
+                            child: Column(
+                              children: <Widget>[
+                                videoPostWidget,
+                                SizedBox(height: constraints.maxHeight * 0.03)
+                              ],
+                            ),
                           ),
-                        ),
-                        Container(
-                          width: constraints.maxWidth * 0.6,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: <Widget>[
-                              Container(
-                                padding: EdgeInsets.only(left: 8.0, top: 8.0),
-                                height: constraints.maxHeight * 0.35,
-                                child: Text(trendingPosts[index].title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: kTitleText.copyWith(
-                                        fontSize:
-                                            (constraints.maxWidth * 0.2) / 4.5,
-                                        fontWeight: FontWeight.w700,
-                                        height: 1.3)),
-                              ),
-                              Container(
-                                padding: EdgeInsets.only(left: 8.0),
-                                height: constraints.maxHeight * 0.25,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    FittedBox(
-                                      child: Text(trendingPosts[index].author,
-                                          style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize:
-                                                  (constraints.maxWidth * 0.2) /
-                                                      5,
-                                              fontWeight: FontWeight.w500)),
-                                    ),
-                                    SizedBox(
-                                        height: constraints.maxHeight * 0.02),
-                                    Row(
-                                      children: <Widget>[
-                                        buildIconText(
-                                            context,
-                                            trendingPosts[index].time,
-                                            Icons.watch_later,
-                                            2.0,
-                                            Colors.black54),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 5),
-                                          child: buildIconText(
-                                              context,
-                                              trendingPosts[index].views,
-                                              Icons.remove_red_eye,
-                                              2.0,
-                                              Colors.black54),
-                                        ),
-                                      ],
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );

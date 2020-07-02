@@ -13,70 +13,148 @@ class SinglePostContent extends StatelessWidget {
   final String postDescription;
 
   SinglePostContent(
-      {@required this.authorImage,@required this.authorName, @required this.authorSubscribers, @required this.postViews, @required this.title, @required this.postedDate, @required this.postDescription});
+      {@required this.authorImage,
+      @required this.authorName,
+      @required this.authorSubscribers,
+      @required this.postViews,
+      @required this.title,
+      @required this.postedDate,
+      @required this.postDescription});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (cnt, constraints) {
       return SingleChildScrollView(
-        child: Padding(
-            padding: EdgeInsets.symmetric(
-                vertical: constraints.maxHeight * 0.05,
-                horizontal: constraints.maxWidth * 0.05),
-            child: Column(
-                children: <Widget>[
-                buildAvatarText(
-                context,
-                authorImage,
-                authorName,
-                constraints.maxHeight * 0.01,
-                buildIconText(context, authorSubscribers, Icons.person, 2.0,
-                Colors.blueGrey),
-                postViews != null ? buildIconText(
-                context, postViews, Icons.remove_red_eye, 2.0, Colors.blueGrey) : null,
-            Colors.black),
-        SizedBox(height: constraints.maxHeight * 0.05),
-        Column(
+        child: Column(
           children: <Widget>[
-            Container(
-              width: double.infinity,
-              child: Text(
-                title,
-                style: kTitleText.copyWith(fontSize: 25),
-                textAlign: TextAlign.left,
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  vertical: constraints.maxHeight * 0.05,
+                  horizontal: constraints.maxWidth * 0.05),
+              child: Row(
+                children: <Widget>[
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(title, style: kTitleText.copyWith(fontSize: 15)),
+                      SizedBox(height: constraints.maxHeight * 0.02),
+                      Text("$postViews Views | 3 Likes"),
+                    ],
+                  ),
+                  Spacer(),
+                  Row(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: Icon(Icons.thumb_up),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 10),
+                        child: Icon(Icons.share),
+                      )
+                    ],
+                  ),
+                ],
               ),
             ),
-            SizedBox(
-              height: constraints.maxHeight * 0.04,
+            SizedBox(height: constraints.maxHeight * 0.01),
+            Divider(thickness: 0.5, color: Colors.black26),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  vertical: constraints.maxHeight * 0.02,
+                  horizontal: constraints.maxHeight * 0.04),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    width: 35,
+                    height: 35,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(50),
+                      image: DecorationImage(
+                          image: AssetImage("assets/images/test.jpeg"),
+                          fit: BoxFit.fill),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(left: constraints.maxWidth * 0.03),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(authorName,style: kTitleText.copyWith(fontSize: 15)),
+                        SizedBox(height: constraints.maxHeight * 0.01,),
+                        Text("5 Subscribers",textAlign: TextAlign.left,style: kLabelText.copyWith(fontSize: 13)),
+                      ],
+                    ),
+                  )
+                ],
+              ),
             ),
-            Container(
-                width: double.infinity,
-                child: Text(
-                  "$postedDate",
-                  style: kLabelText,
-                  textAlign: TextAlign.left,
-                )),
-            SizedBox(
-              height: constraints.maxHeight * 0.04,
+            Divider(thickness: 0.5, color: Colors.black26),
+            SizedBox(height: constraints.maxHeight * 0.05),
+            Align(
+              alignment: Alignment.topLeft,
+              child: Container(
+                width: constraints.maxWidth * 0.6,
+                padding: EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.05),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start,mainAxisAlignment: MainAxisAlignment.start,children: <Widget>[
+                  Image.asset("assets/images/facebook.png",width: 32,height: 32,),
+                  Spacer(),
+                  Image.asset("assets/images/twitter.png",width: 32,height: 32,),
+                  Spacer(),
+                  Image.asset("assets/images/google-plus.png",width: 32,height: 32,),
+                  Spacer(),
+                  Image.asset("assets/images/linkedin.png",width: 32,height: 32,),
+                ],),
+              ),
             ),
+            SizedBox(height: constraints.maxHeight * 0.08),
+            Container(margin: EdgeInsets.only(left: constraints.maxWidth * 0.04),width: double.infinity,child: Text("Comments",textAlign: TextAlign.left,style: kTitleText.copyWith(fontSize: 20),)),
+            SizedBox(height: constraints.maxHeight * 0.04),
             Container(
-                width: constraints.maxWidth * 0.9,
-                child: Text(
-                  "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. \n It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).",
-                  style: kLabelText.copyWith(
-                      wordSpacing:
-                      constraints.maxWidth * 0.01,
-                      height: 1.8,
-                      color: Color(0xFF9BA0AB)),
-                  textAlign: TextAlign.left,
-                )),
+              width: double.infinity,
+              height: constraints.maxHeight * 0.5,
+              child: ListView.builder(itemCount: 2,itemBuilder: (cntx,index){
+                return Center(
+                  child: Container(
+                    margin: EdgeInsets.only(bottom: 10),
+                    width: constraints.maxWidth * 0.9,
+                    child: Row(
+                      children: <Widget>[
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(50),
+                            image: DecorationImage(
+                                image: AssetImage("assets/images/test.jpeg"),
+                                fit: BoxFit.fill),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0,horizontal: 12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: <Widget>[
+                              Text("Author Name",style: kTitleText.copyWith(fontSize: 13)),
+                              SizedBox(height: constraints.maxHeight * 0.01,),
+                              Text("Comment Text",style: kLabelText.copyWith(fontSize: 11,color: Colors.black87)),
+                            ],
+                          ),
+                        ),
+                        Spacer(),
+                        Icon(Icons.favorite_border,size: 18,color: Colors.grey,)
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
           ],
         ),
-        ],
-      ),)
-      ,
       );
     });
   }
-
 }

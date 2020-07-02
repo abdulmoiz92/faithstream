@@ -1,29 +1,41 @@
+import 'dart:io';
+
+import 'package:chewie/chewie.dart';
+import 'package:faithstream/homescreen/home_screen.dart';
+import 'package:faithstream/model/blog.dart';
+import 'package:faithstream/model/channel.dart';
+import 'package:faithstream/model/trending_posts.dart';
+import 'package:faithstream/trendingscreen/trending_posts.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:video_player/video_player.dart';
 
 const kTitleText =
     TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 35);
 const kLabelText = TextStyle(color: Color(0xFFC9CAD1), fontSize: 15);
 
-RichText buildIconText(BuildContext context, String text, IconData icon,
-    double padding, Color color) {
-  return RichText(
-    text: TextSpan(
-      children: [
-        WidgetSpan(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: padding),
-            child: Icon(
-              icon,
-              color: color,
-              size: 16,
+GestureDetector buildIconText(BuildContext context, String text, IconData icon,
+    double padding, Color color,{Function onTap}) {
+  return GestureDetector(
+    onTap: onTap == null ? (){} : onTap,
+    child: RichText(
+      text: TextSpan(
+        children: [
+          WidgetSpan(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: padding),
+              child: Icon(
+                icon,
+                color: color,
+                size: 16,
+              ),
             ),
           ),
-        ),
-        TextSpan(text: text, style: TextStyle(color: color, fontSize: 12)),
-      ],
+          TextSpan(text: text, style: TextStyle(color: color, fontSize: 12)),
+        ],
+      ),
     ),
   );
 }
@@ -39,6 +51,19 @@ Row buildHeading(
       secondWidget,
     ],
   );
+}
+
+
+void checkInternet(BuildContext context,{Future<void> futureFunction,void simpleFunction,Function noNet}) async {
+  try {
+    final result = await InternetAddress.lookup('google.com');
+    if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+      print(result);
+      futureFunction == null ? simpleFunction : futureFunction;
+    }
+  } on SocketException catch (_) {
+    noNet();
+  }
 }
 
 void buildSnackBar(BuildContext context, String text) {
@@ -84,17 +109,15 @@ Row buildAvatarText(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                FittedBox(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14),
-                  ),
-                ),
+                title != null ? Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14),
+                ) : Text(""),
                 if (optionalWidgetOne != null && optionalWidgetTwo != null)
                   SizedBox(height: height),
                 Row(
@@ -122,21 +145,119 @@ Row buildAvatarText(
   );
 }
 
-LayoutBuilder buildProfileCard(String text,IconData icon,Color iconColor) {
+LayoutBuilder buildProfileCard(String text,IconData icon,Color iconColor,{Function onTap}) {
   return LayoutBuilder(builder: (cntx,constraints){
     return Container(
-        width: constraints.maxWidth * 0.2,
-        height: constraints.maxHeight * 0.1,
-        child: Card(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Icon(icon, color: iconColor,size: 40,),
-              SizedBox(height: constraints.maxHeight * 0.06),
-              Text(text),
-            ],
-          ),
+        width: constraints.maxWidth * 0.9,
+        child: ListTile(
+          onTap: onTap,
+          leading: Icon(icon, color: iconColor,size: 20,),
+          title: Text(text,textAlign: TextAlign.left,),
+          trailing: Icon(Icons.arrow_forward_ios,size: 12),
         ));
   });
 }
+
+Row buildChannelContent(
+    BuildContext context, String logo, String title, int index,List<Channel> allChannels) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      Center(
+        child: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(50),
+            image: DecorationImage(
+              image: logo == null
+                  ? AssetImage("assets/images/test.jpeg")
+                  : NetworkImage(logo),
+              fit: BoxFit.fill,
+            ),
+          ),
+        ),
+      ),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                title != null
+                    ? Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20),
+                )
+                    : Text(""),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: allChannels[index].prefrence == null ? Container() : buildTextWithIcon(context, Icons.category,
+                      "${allChannels[index].prefrence}", 3.0, Colors.white),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      /*,*/
+                      buildTextWithIcon(
+                          context,
+                          Icons.videocam,
+                          "${allChannels[index].numOfVideos}",
+                          3.0,
+                          Colors.white),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        child:
+                        Text("|", style: TextStyle(color: Colors.white)),
+                      ),
+                      buildTextWithIcon(
+                          context,
+                          Icons.people,
+                          "${allChannels[index].numOfSubscribers}",
+                          3.0,
+                          Colors.white),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+RichText buildTextWithIcon(BuildContext context, IconData icon, String text,
+    double padding, Color color) {
+  return RichText(
+    text: TextSpan(
+      children: [
+        WidgetSpan(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: padding),
+            child: Icon(
+              icon,
+              color: color,
+              size: 20,
+            ),
+          ),
+        ),
+        TextSpan(text: text == "null" ? "" : text, style: TextStyle(color: color, fontSize: 15)),
+      ],
+    ),
+  );
+}
+
+
+

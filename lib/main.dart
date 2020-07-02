@@ -18,6 +18,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
+        primaryColor: Colors.white,
         primarySwatch: Colors.blue,
       ),
       home: Homepage(),
@@ -44,7 +45,7 @@ class _HomepageState extends State<Homepage> {
     return Scaffold(
         body: Container(
       height: (
-        MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * 1,
+        MediaQuery.of(context).size.height * 1),
         child: page,
     )
     );

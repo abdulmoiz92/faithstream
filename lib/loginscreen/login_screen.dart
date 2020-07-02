@@ -24,85 +24,90 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: LayoutBuilder(builder: (cntx, constraints) {
-        return Column(
-          children: <Widget>[
-            Image.asset("assets/images/loginbg.png",
-                width: double.infinity,
-                height: constraints.maxHeight * 0.45,
-                fit: BoxFit.cover),
-            Container(
-              height: constraints.maxHeight * 0.55,
-              child: Column(
-                children: <Widget>[
-                  Text("Welcome",
-                      textAlign: TextAlign.center, style: kTitleText),
-                  SizedBox(
-                    height: constraints.maxHeight * 0.01,
-                  ),
-                  Text(
-                    "Login to continue",
-                    textAlign: TextAlign.center,
-                    style: kLabelText,
-                  ),
-                  SizedBox(height: constraints.maxHeight * 0.05),
-                  LoginTextField(
-                    label: "Username/Email",
-                    icon: Icons.mail_outline,
-                    isObscure: false,
-                    controller: usernameController,
-                  ),
-                  SizedBox(height: constraints.maxHeight * 0.03),
-                  LoginTextField(
-                    label: "Password",
-                    icon: Icons.lock_outline,
-                    isObscure: true,
-                    controller: passwordController,
-                  ),
-                  SizedBox(height: constraints.maxHeight * 0.03),
-                  Container(
-                    margin: EdgeInsets.only(left: constraints.maxWidth * 0.05),
-                    width: constraints.maxWidth * 0.8,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (cntx) => RegisterScreen()));
-                      },
-                      child: Text(
-                        "Create Account",
-                        style: TextStyle(color: Colors.lightBlue, fontSize: 14),
+      body: SingleChildScrollView(
+        child: Container(
+          width: double.infinity,
+          height: MediaQuery.of(context).size.height * 1,
+          child: LayoutBuilder(builder: (cntx, constraints) {
+            return Column(
+              children: <Widget>[
+                Image.asset("assets/images/loginbg.png",
+                    width: double.infinity,
+                    height: constraints.maxHeight * 0.45,
+                    fit: BoxFit.cover),
+                Container(
+                  height: constraints.maxHeight * 0.55,
+                  child: Column(
+                    children: <Widget>[
+                      Text("Welcome",
+                          textAlign: TextAlign.center, style: kTitleText),
+                      SizedBox(
+                        height: constraints.maxHeight * 0.01,
                       ),
-                    ),
-                  ),
-                  SizedBox(height: constraints.maxHeight * 0.05),
-                  Center(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Color(0xFFF9B601),
-                        borderRadius: BorderRadius.circular(15),
+                      Text(
+                        "Login to continue",
+                        textAlign: TextAlign.center,
+                        style: kLabelText,
                       ),
-                      width: constraints.maxWidth * 0.7,
-                      child: FlatButton(
-                        onPressed: () {
-                          _authenticateUser(
-                              usernameController.text, passwordController.text);
-                        },
-                        child: Text("LOGIN",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
+                      SizedBox(height: constraints.maxHeight * 0.05),
+                      LoginTextField(
+                        label: "Username/Email",
+                        icon: Icons.mail_outline,
+                        isObscure: false,
+                        controller: usernameController,
                       ),
-                    ),
+                      SizedBox(height: constraints.maxHeight * 0.03),
+                      LoginTextField(
+                        label: "Password",
+                        icon: Icons.lock_outline,
+                        isObscure: true,
+                        controller: passwordController,
+                      ),
+                      SizedBox(height: constraints.maxHeight * 0.03),
+                      Container(
+                        margin: EdgeInsets.only(left: constraints.maxWidth * 0.05),
+                        width: constraints.maxWidth * 0.8,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (cntx) => RegisterScreen()));
+                          },
+                          child: Text(
+                            "Create Account",
+                            style: TextStyle(color: Colors.lightBlue, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: constraints.maxHeight * 0.05),
+                      Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFF9B601),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          width: constraints.maxWidth * 0.7,
+                          child: FlatButton(
+                            onPressed: () {
+                              _authenticateUser(
+                                  usernameController.text, passwordController.text);
+                            },
+                            child: Text("LOGIN",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ],
-        );
-      }),
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
     );
   }
 
