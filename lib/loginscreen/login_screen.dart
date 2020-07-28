@@ -131,7 +131,11 @@ class _LoginScreenState extends State<LoginScreen> {
         sph.setUserId("${json.decode(response.body)['data']['id']}");
         sph.setIsLogin(true);
         sph.setMemberId("${json.decode(response.body)['data']['memberInfo']['id']}");
-        Navigator.of(context).push(MaterialPageRoute(builder: (cntx) => HomeScreen()));
+        sph.setProfileImage("${json.decode(response.body)['data']['memberInfo']['profileImage']}");
+        sph.setFirstName("${json.decode(response.body)['data']['firstName']}");
+        sph.setLastName("${json.decode(response.body)['data']['lastName']}");
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (cntx) => HomeScreen()));
       }
       return true;
     } else {

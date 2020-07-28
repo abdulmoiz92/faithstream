@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:faithstream/model/channel.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
@@ -48,17 +49,21 @@ class _SubscribedChannelsState extends State<SubscribedChannels> {
                         itemBuilder: (cntx, index) {
                           return Container(
                             margin: EdgeInsets.only(
-                                top: index == 0 ? constraints.maxHeight * (0.015 + 0.03) : 0,
+                                top: index == 0
+                                    ? constraints.maxHeight * (0.015 + 0.03)
+                                    : 0,
                                 bottom: constraints.maxHeight * 0.04),
                             width: constraints.maxWidth * 1,
                             height: constraints.maxHeight * 0.4,
                             decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(25),
                                 image: DecorationImage(
-                                    image: allSubscribedChannels[index].channelBg == null
+                                    image: allSubscribedChannels[index]
+                                                .channelBg ==
+                                            null
                                         ? AssetImage("assets/images/model.png")
                                         : NetworkImage(
-                                        "${allSubscribedChannels[index].channelBg}"),
+                                            "${allSubscribedChannels[index].channelBg}"),
                                     fit: BoxFit.fill,
                                     colorFilter: ColorFilter.mode(
                                         Colors.black.withOpacity(0.76),
@@ -70,48 +75,80 @@ class _SubscribedChannelsState extends State<SubscribedChannels> {
                                     padding: EdgeInsets.symmetric(
                                         vertical: constraints.maxHeight * 0.04,
                                         horizontal:
-                                        constraints.maxWidth * 0.05),
+                                            constraints.maxWidth * 0.05),
                                     child: buildChannelContent(
                                         context,
-                                        allSubscribedChannels[index].authorImage,
-                                        allSubscribedChannels[index].channelName,
-                                        index,allSubscribedChannels),
+                                        allSubscribedChannels[index]
+                                            .authorImage,
+                                        allSubscribedChannels[index]
+                                            .channelName,
+                                        index,
+                                        allSubscribedChannels),
                                   ),
                                   Align(
                                     alignment: Alignment.bottomRight,
-                                    child: Container(
-                                      margin: EdgeInsets.only(
-                                          right: constraints.maxWidth * 0.03),
-                                      color: Colors.red,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: RichText(
-                                          text: TextSpan(
-                                            children: [
-                                              WidgetSpan(
-                                                child: Padding(
-                                                  padding: EdgeInsets.only(
-                                                      right: 3.0),
-                                                  child: Icon(
-                                                    allSubscribedChannels[index]
-                                                        .isSubscribed ==
-                                                        false
-                                                        ? Icons.notifications
-                                                        : Icons.done,
-                                                    size: 17,
-                                                    color: Colors.white,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (allSubscribedChannels[index]
+                                                .getIsSubscribed ==
+                                            true) {
+                                          setState(() {
+                                            allSubscribedChannels[index]
+                                                .setIsSubscribe(false);
+                                          });
+                                          unSubscribeChannel(
+                                              context,
+                                              userToken,
+                                              memberId,
+                                              allSubscribedChannels[index]);
+                                        } else {
+                                          setState(() {
+                                            allSubscribedChannels[index]
+                                                .setIsSubscribe(true);
+                                          });
+                                          subscribeChannel(
+                                              context,
+                                              userToken,
+                                              memberId,
+                                              allSubscribedChannels[index]);
+                                        }
+                                      },
+                                      child: Container(
+                                        margin: EdgeInsets.only(
+                                            right: constraints.maxWidth * 0.03),
+                                        color: Colors.red,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: RichText(
+                                            text: TextSpan(
+                                              children: [
+                                                WidgetSpan(
+                                                  child: Padding(
+                                                    padding: EdgeInsets.only(
+                                                        right: 3.0),
+                                                    child: Icon(
+                                                      allSubscribedChannels[
+                                                                      index]
+                                                                  .getIsSubscribed ==
+                                                              false
+                                                          ? Icons.notifications
+                                                          : Icons.done,
+                                                      size: 17,
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              TextSpan(
-                                                  text: allSubscribedChannels[index]
-                                                      .isSubscribed ==
-                                                      false
-                                                      ? "Subscribe"
-                                                      : "Unsubscribe",
-                                                  style: TextStyle(
-                                                      color: Colors.white))
-                                            ],
+                                                TextSpan(
+                                                    text: allSubscribedChannels[
+                                                                    index]
+                                                                .getIsSubscribed ==
+                                                            false
+                                                        ? "Subscribe"
+                                                        : "Unsubscribe",
+                                                    style: TextStyle(
+                                                        color: Colors.white))
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -132,7 +169,6 @@ class _SubscribedChannelsState extends State<SubscribedChannels> {
     );
   }
 
-
   @override
   void initState() {
     getData();
@@ -147,7 +183,7 @@ class _SubscribedChannelsState extends State<SubscribedChannels> {
         userToken = prefs.getString(sph.user_token);
         memberId = prefs.getString(sph.member_id);
       });
-    checkInternet(context,futureFunction: getChannels());
+    checkInternet(context, futureFunction: getChannels());
   }
 
   Future<void> getChannels() async {
@@ -164,21 +200,20 @@ class _SubscribedChannelsState extends State<SubscribedChannels> {
 
       var ChannelMemberDataJson = json.decode(ChannelMemberData.body);
 
-
       if (mounted)
         setState(() {
           Channel newChannel = new Channel(
-              channelBg: ch['banner'],
-              authorImage: ch['logo'],
-              channelName: ch['name'],
-              numOfVideos: ch['numOfVideos'],
-              numOfSubscribers: ch['numOfSubscribers'],
-              prefrence: ch['preference'],
-              isSubscribed: ch['isSubscribed']);
+            id: ch['id'],
+            channelBg: ch['banner'],
+            authorImage: ch['logo'],
+            channelName: ch['name'],
+            numOfVideos: ch['numOfVideos'],
+            numOfSubscribers: ch['numOfSubscribers'],
+            prefrence: ch['preference'],
+          );
+          newChannel.isSubscribedSet = true;
           allSubscribedChannels.add(newChannel);
         });
     }
   }
-
-
 }

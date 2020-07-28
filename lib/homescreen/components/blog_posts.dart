@@ -4,12 +4,17 @@ import 'dart:ui' as ui;
 
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
+import 'package:faithstream/model/dbpost.dart';
+import 'package:faithstream/model/donation.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/trendingscreen/trending_posts.dart';
+import 'package:faithstream/utils/databasemethods/database_methods.dart';
+import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,16 +22,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'your_blogs.dart';
 
 class BlogPostsScreen extends StatefulWidget {
-
   @override
-  _BlogPostsScreenState createState() => _BlogPostsScreenState();
+  BlogPostsScreenState createState() => BlogPostsScreenState();
 }
 
-class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliveClientMixin<BlogPostsScreen> {
+class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliveClientMixin<BlogPostsScreen>,ChangeNotifier {
 
   SharedPrefHelper sph = SharedPrefHelper();
 
-  final List<Blog> allBlogs = [];
+  List<Blog> allBlogs = [];
   final List<TPost> allTrendingPosts = [];
   List<Comment> commentsList = [];
 
@@ -43,7 +47,7 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
           width: double.infinity,
           height: MediaQuery.of(context).size.height * 1,
           child: allBlogs.length > 5
-              ? YourBlogs(allBlogs)
+              ? YourBlogs(allBlogs,memberId,userToken)
               : const Center(
             child: CircularProgressIndicator(
               backgroundColor: Colors.red,
@@ -70,6 +74,10 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
         "http://api.faithstreams.net/api/Post/GetTimeLine2/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
+    var isFavouriteData = await http.get(
+        "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
+        headers: {"Authorization": "Bearer $userToken"});
+
     print("$memberId");
     print("$userToken");
 
@@ -84,29 +92,12 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
 
           var postData = u;
 
-          var commentData = await http.get(
-              "http://api.faithstreams.net/api/Post/GetPostComments/${postData['id']}",
-              headers: {"Authorization": "Bearer $userToken"});
-          if (commentData.body.isNotEmpty) {
-            var commentDataJson = json.decode(commentData.body);
-            if (commentDataJson['data'] != null) {
-              for (var c in commentDataJson['data']) {
-                if (commentDataJson['data'] == []) continue;
-               if(mounted) setState(() {
-                  Comment newComment = new Comment(
-                      commentText: c['commentText'],
-                      authorName: c['commentedBy'],
-                      time: "${_compareDate(c['dateCreated'])} ago");
-                  commentsList.add(newComment);
-                });
-              }
-            }
-          }
-
           int imageWidth;
           int imageHeight;
 
           Image image;
+
+         DBPost newPost = new DBPost(postId: null);
 
           if(mounted)
           setState(() {
@@ -138,6 +129,16 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
                 views: null,
                 subscribers: null);
 
+            List<Donation> donnations = [];
+
+            if(u['denom'] != null) {
+              if(u['denom'] != [])
+                for(var d in u['denom']) {
+                  Donation newDonation = new Donation(id: d['id'].toString(),channelId: d['channelID'].toString(),denomAmount: d['denomAmount'],denomDescription: d['denomDescription']);
+                  donnations.add(newDonation);
+                }
+            }
+
             if (u['postType'] == "Event")
               newBlog = new Blog(
                   postId: postData['id'],
@@ -150,12 +151,13 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
                   author: postData['authorName'],
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
-                  time: "${_compareDate(postData['dateCreated'])} ago",
+                  time: "${compareDate(postData['dateCreated'])} ago",
                   likes: "${postData['likesCount']}",
                   views: postData['event']['video'] != null
                       ? "${postData['event']['video']['numOfViews']}"
                       : null,
                   subscribers: "${postData['numOfSubscribers']}",
+                  eventId: postData['event']['id'],
                   eventLocation: postData['event']['location'],
                   eventTime:
                   "${DateFormat.jm().format(DateTime.parse(
@@ -165,6 +167,9 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
                       .format(
                       DateTime.parse(postData['event']['postSchedule']))}",
                   comments: commentsList,
+                  isDonationRequired: postData['isDonationRequire'],
+                  donations: donnations,
+                  isTicketAvailable: postData['event']['isTicketPurchaseRequired'],
                   imageWidth: postData['event']['image'] == null ?  null : imageWidth,
                   imageHeight: postData['event']['image'] == null ? null : imageHeight
               );
@@ -178,14 +183,20 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
                   author: postData['authorName'],
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
-                  time: "${_compareDate(postData['dateCreated'])} ago",
+                  time: "${compareDate(postData['dateCreated'])} ago",
                   likes: "${postData['video']['numOfLikes']}",
                   views: "${postData['video']['numOfViews']}",
                   subscribers: "${postData['numOfSubscribers']}",
                   imageWidth: postData['video']['thumbnail'] == null ? null : imageWidth,
                   imageHeight: postData['video']['thumbnail'] == null ? null : imageHeight!= null && imageHeight > 700 ? null : imageHeight,
                   videoDuration: "",
-                  comments: commentsList);
+                  comments: commentsList,
+                  donations: donnations,
+                  isDonationRequired: postData['isDonationRequire'],
+                  isPaidVideo: postData['video']['isPaidContent'],
+                  isPurchased: postData['video']['isPurchased'],
+                  videoPrice: postData['video']['price'] == null ? null : double.parse(postData['video']['price']),
+                  freeVideoLength: postData['video']['freeVideoLength'] );
 
             if (u['postType'] == "Image")
               newBlog = new Blog(
@@ -197,36 +208,41 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
                 author: postData['authorName'],
                 authorImage: postData['authorImage'],
                 date: postData['dateCreated'],
-                time: "${_compareDate(postData['dateCreated'])} ago",
+                time: "${compareDate(postData['dateCreated'])} ago",
                 likes: "${postData['likesCount']}",
                 views: null,
                 subscribers: "${postData['numOfSubscribers']}",
+                isDonationRequired: postData['isDonationRequire'],
                 imageWidth: imageWidth,
                 imageHeight: imageHeight,
+                donations: donnations,
                 comments: commentsList,
               );
 
-            allBlogs.add(newBlog);
-          });
-        }
-      }
-    }
-  }
+            newPost.setDBPostId = postData['id'];
 
-  String _compareDate(String dateToCompare) {
-    var dateExpression =
-    DateTime.now().difference(DateTime.parse(dateToCompare));
-    if (dateExpression.inDays == 0) {
-      return dateExpression.inHours < 1
-          ? "${dateExpression.inSeconds} sec"
-          : "${dateExpression.inHours} hrs";
-    } else if (dateExpression.inDays >= 1) {
-      if (dateExpression.inDays > 6 && dateExpression.inDays <= 29) {
-        return "${(dateExpression.inDays / 7).round()} weeks";
-      } else if (dateExpression.inDays > 29) {
-        return "${(dateExpression.inDays / 30).round()} months";
-      } else {
-        return "${(dateExpression.inDays)} days";
+            var isFavouritejsonData = jsonDecode(isFavouriteData.body);
+            if(isFavouriteData.body.isNotEmpty)
+              if(isFavouritejsonData['data'] != null)
+                for(var fv in isFavouritejsonData['data'] ) {
+                  if(fv['id'] == postData['id']) {
+                    newPost.setIsFavourited = 1;
+                  }
+                }
+
+            if(u['postLikes'] != [])
+              for(var il in u['postLikes']) {
+                if(il['memberID'] == memberId) {
+                  newPost.setIsLiked = 1;
+                }
+              }
+            allBlogs.add(newBlog);
+            donnations = [];
+          });
+         await insertDBPost(newPost);
+         newPost.setIsLiked = 0;
+         newPost.setIsFavourited = 0;
+        }
       }
     }
   }
@@ -237,13 +253,12 @@ class _BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAli
     super.initState();
   }
 
-
   @override
   void dispose() {
+    print("disposed");
     super.dispose();
   }
 
   @override
-  // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 }

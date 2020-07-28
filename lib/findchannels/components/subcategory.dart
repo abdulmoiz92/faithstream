@@ -4,6 +4,7 @@ import 'package:faithstream/findchannels/components/channel_screen.dart';
 import 'package:faithstream/findchannels/components/subcategoryprefix_screen.dart';
 import 'package:faithstream/model/category.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingwidgets/findchannel_widgets.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -44,18 +45,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
           height: constraints.maxHeight * 1,
           child: Column(
             children: <Widget>[
-              Center(
-                child: Container(
-                  padding: EdgeInsets.only(left: constraints.maxWidth * 0.02,top: constraints.maxHeight * 0.025,bottom: constraints.maxHeight * 0.025),
-                  color: Colors.lightBlue.withOpacity(0.3),
-                  width: constraints.maxWidth * 0.9,
-                  height: constraints.maxHeight * 0.08,
-                  child: RichText(text: TextSpan(text: "",children: <TextSpan>[
-                    TextSpan(text: "Step 2: ",style: kTitleText.copyWith(fontSize: 13)),
-                    TextSpan(text: "Select $groupName",style: TextStyle(fontSize: 13,color: Colors.black87))
-                  ]),),
-                ),
-              ),
+              TopHeading(constraints,groupName),
               Center(
                 child: Container(
                   margin: EdgeInsets.only(top: constraints.maxHeight * 0.015),
@@ -64,33 +54,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
                   child: ListView.builder(itemCount: allSubCategories.length,itemBuilder: (cntx,index){
                     return GestureDetector(
                       onTap: () {widget.numOfSteps == 3 ? navigateToSubCategoryPrefixesScreen(context,allSubCategories[index].categoryId) : navigateToChannelScreen(context,allSubCategories[index].categoryId);},
-                      child: Container(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Divider(),
-                            Container(
-                              width: constraints.maxWidth * 0.9,
-                              child: Padding(
-                                padding: groupName == "religion" ? EdgeInsets.symmetric(vertical: constraints.maxHeight * 0.03) : EdgeInsets.symmetric(vertical: constraints.maxHeight * 0.0),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: <Widget>[
-                                   if(mounted) Image.network("${allSubCategories[index].iconUrl}",width: 50,height: 30,),
-                                    Padding(
-                                      padding: groupName == "religion" ? EdgeInsets.all(0) :  EdgeInsets.only(top: constraints.maxHeight * 0.03),
-                                      child: Text("${allSubCategories[index].categoryName}"),
-                                    ),
-                                    Spacer(),
-                                    Icon(Icons.arrow_forward_ios,size: 14,),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      child: SubCategoryList(mounted,allSubCategories,groupName,index,constraints),
                     );
                   }),
                 ),

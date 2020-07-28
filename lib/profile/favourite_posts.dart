@@ -7,6 +7,7 @@ import 'package:faithstream/homescreen/components/your_blogs.dart';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +32,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
       appBar: AppBar(
         leading: IconButton(
             icon: Icon(Icons.arrow_back_ios, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop()),
+            onPressed: () => Navigator.pop(context)),
         title: Text(
           "Favourite Posts",
           textAlign: TextAlign.left,
@@ -44,7 +45,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
           padding: EdgeInsets.only(bottom: 0),
           width: double.infinity,
           height: MediaQuery.of(context).size.height * 1,
-          child: YourBlogs(favouriteBlogs),
+          child: YourBlogs(favouriteBlogs,memberId,userToken),
           );
       }),
     );
@@ -72,6 +73,9 @@ class _FavouritePostsState extends State<FavouritePosts> {
     var channelData = await http.get(
         "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
+    var isFavouriteData = await http.get(
+        "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
+        headers: {"Authorization": "Bearer $userToken"});
 
     print("$memberId");
     print("$userToken");
@@ -86,25 +90,6 @@ class _FavouritePostsState extends State<FavouritePosts> {
           if (channelDataJson['data'] == []) continue;
 
           var postData = u;
-
-          var commentData = await http.get(
-              "http://api.faithstreams.net/api/Post/GetPostComments/${postData['id']}",
-              headers: {"Authorization": "Bearer $userToken"});
-          if (commentData.body.isNotEmpty) {
-            var commentDataJson = json.decode(commentData.body);
-            if (commentDataJson['data'] != null) {
-              for (var c in commentDataJson['data']) {
-                if (commentDataJson['data'] == []) continue;
-                if(mounted) setState(() {
-                  Comment newComment = new Comment(
-                      commentText: c['commentText'],
-                      authorName: c['commentedBy'],
-                      time: "${_compareDate(c['dateCreated'])} ago");
-                  commentsList.add(newComment);
-                });
-              }
-            }
-          }
 
           int imageWidth;
           int imageHeight;
@@ -152,7 +137,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
                     author: postData['authorName'],
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
-                    time: "${_compareDate(postData['dateCreated'])} ago",
+                    time: "${compareDate(postData['dateCreated'])} ago",
                     likes: "${postData['likesCount']}",
                     views: postData['event']['video'] != null
                         ? "${postData['event']['video']['numOfViews']}"
@@ -180,7 +165,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
                     author: postData['authorName'],
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
-                    time: "${_compareDate(postData['dateCreated'])} ago",
+                    time: "${compareDate(postData['dateCreated'])} ago",
                     likes: "${postData['video']['numOfLikes']}",
                     views: "${postData['video']['numOfViews']}",
                     subscribers: "${postData['numOfSubscribers']}",
@@ -199,7 +184,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
                   author: postData['authorName'],
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
-                  time: "${_compareDate(postData['dateCreated'])} ago",
+                  time: "${compareDate(postData['dateCreated'])} ago",
                   likes: "${postData['likesCount']}",
                   views: null,
                   subscribers: "${postData['numOfSubscribers']}",
@@ -208,27 +193,22 @@ class _FavouritePostsState extends State<FavouritePosts> {
                   comments: commentsList,
                 );
 
+              var isFavouritejsonData = jsonDecode(isFavouriteData.body);
+              if(isFavouriteData.body.isNotEmpty)
+                if(isFavouritejsonData['data'] != null)
+                  for(var fv in isFavouritejsonData['data'] ) {
+                    if(fv['id'] == newBlog.postId)
+                      newBlog.setIsFavourite = true;
+                  }
+
+              if(u['postLikes'] != [])
+                for(var il in u['postLikes']) {
+                  if(il['memberID'] == memberId)
+                    newBlog.setIsLiked = true;
+                }
               favouriteBlogs.add(newBlog);
             });
         }
-      }
-    }
-  }
-
-  String _compareDate(String dateToCompare) {
-    var dateExpression =
-    DateTime.now().difference(DateTime.parse(dateToCompare));
-    if (dateExpression.inDays == 0) {
-      return dateExpression.inHours < 1
-          ? "${dateExpression.inSeconds} sec"
-          : "${dateExpression.inHours} hrs";
-    } else if (dateExpression.inDays >= 1) {
-      if (dateExpression.inDays > 6 && dateExpression.inDays <= 29) {
-        return "${(dateExpression.inDays / 7).round()} weeks";
-      } else if (dateExpression.inDays > 29) {
-        return "${(dateExpression.inDays / 30).round()} months";
-      } else {
-        return "${(dateExpression.inDays)} days";
       }
     }
   }

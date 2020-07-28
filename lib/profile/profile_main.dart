@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import 'package:faithstream/homescreen/components/blog_posts.dart';
 import 'package:faithstream/loginscreen/login_screen.dart';
 import 'package:faithstream/profile/favourite_posts.dart';
 import 'package:faithstream/profile/components/profile_header.dart';
 import 'package:faithstream/profile/edit_profile.dart';
+import 'package:faithstream/profile/mydonations.dart';
 import 'package:faithstream/profile/subscribed_channels.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/databasemethods/database_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -17,8 +20,7 @@ class ProfileNavigation extends StatefulWidget {
   _ProfileNavigationState createState() => _ProfileNavigationState();
 }
 
-class _ProfileNavigationState extends State<ProfileNavigation>
-    with AutomaticKeepAliveClientMixin {
+class _ProfileNavigationState extends State<ProfileNavigation> {
   String userId;
   String userToken;
   String memberId;
@@ -31,7 +33,33 @@ class _ProfileNavigationState extends State<ProfileNavigation>
 
   @override
   Widget build(BuildContext context) {
+    void refreshPage(bool refresh) {
+      if (refresh == true) {
+        print("called");
+        getData();
+      }
+    }
+
+    void moveToEditProfilePage() async {
+      final refresh = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => EditProfile(
+                  userToken: userToken,
+                  userId: userId,
+                  memberId: memberId,
+                  image: userProfileImage,
+                  firstName: userFirstName,
+                  lastName: userLastName,
+                  userEmail: userEmail,
+                  userPhone: userPhoneNumber,
+                )),
+      );
+      refreshPage(refresh);
+    }
+
     return LayoutBuilder(builder: (cntx, constraints) {
+      GlobalKey<BlogPostsScreenState> blogkey = new GlobalKey();
       return Scaffold(
         body: Container(
           margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
@@ -65,16 +93,7 @@ class _ProfileNavigationState extends State<ProfileNavigation>
                     ),
                     buildProfileCard("Edit Profile", Icons.person, Colors.blue,
                         onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (cntx) => EditProfile(
-                                    image: userProfileImage,
-                                    firstName: userFirstName,
-                                    lastName: userLastName,
-                                    userEmail: userEmail,
-                                    userPhone: userPhoneNumber,
-                                  )));
+                      moveToEditProfilePage();
                     }),
                     Divider(
                       color: Colors.black12,
@@ -105,14 +124,18 @@ class _ProfileNavigationState extends State<ProfileNavigation>
                     Divider(
                       color: Colors.black12,
                     ),
-                    buildProfileCard(
-                        "My Donations", Icons.pan_tool, Colors.red),
+                    buildProfileCard("My Donations", Icons.pan_tool, Colors.red,
+                        onTap: () {
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (cntx) => MyDonations()));
+                    }),
                     Divider(
                       color: Colors.black12,
                     ),
                     buildProfileCard(
-                        "Logout", Icons.power_settings_new, Colors.indigo,onTap: () {
-                          logout(context);
+                        "Logout", Icons.power_settings_new, Colors.indigo,
+                        onTap: () {
+                      logout(context);
                     }),
                   ],
                 ),
@@ -133,7 +156,9 @@ class _ProfileNavigationState extends State<ProfileNavigation>
   Future<SharedPreferences> logout(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.clear();
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (cntx) => LoginScreen()));
+    deleteDatabase("posts");
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (cntx) => LoginScreen()));
   }
 
   Future<SharedPreferences> getData() async {
@@ -145,8 +170,8 @@ class _ProfileNavigationState extends State<ProfileNavigation>
         userToken = prefs.getString(sph.user_token);
         memberId = prefs.getString(sph.member_id);
       });
-    if(ModalRoute.of(context).isCurrent)
-    checkInternet(context, futureFunction: getUser());
+    if (ModalRoute.of(context).isCurrent)
+      checkInternet(context, futureFunction: getUser());
   }
 
   Future<void> getUser() async {
@@ -166,8 +191,4 @@ class _ProfileNavigationState extends State<ProfileNavigation>
         userPhoneNumber = userDataJson['data']['memberInfo']['phone'];
       });
   }
-
-  @override
-  // TODO: implement wantKeepAlive
-  bool get wantKeepAlive => true;
 }

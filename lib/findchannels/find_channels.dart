@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:faithstream/model/category.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingwidgets/findchannel_widgets.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -34,18 +35,7 @@ class _findChannelsScreenState extends State<FindChannelsScreen> with AutomaticK
                color: Colors.lightBlue.withOpacity(0.3),
                width: constraints.maxWidth * 0.9,
                height: constraints.maxHeight * 0.15,
-               child: Column(
-                 mainAxisAlignment: MainAxisAlignment.start,
-                 crossAxisAlignment: CrossAxisAlignment.start,
-                 children: <Widget>[
-                   Text("Find & Subscribe Channel",style: kTitleText.copyWith(fontSize: 14),),
-                   Spacer(),
-                   RichText(text: TextSpan(text: "",children: <TextSpan>[
-                     TextSpan(text: "Step 1: ",style: kTitleText.copyWith(fontSize: 13)),
-                     TextSpan(text: "Select area of intrest",style: TextStyle(fontSize: 13,color: Colors.black87))
-                   ]),)
-                 ],
-               ),
+               child: FindChannelTop(),
              ),
            ),
            Center(

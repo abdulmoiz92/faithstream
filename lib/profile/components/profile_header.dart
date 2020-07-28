@@ -6,6 +6,7 @@ class ProfileHeader extends StatelessWidget {
   final String image;
   final String name;
   final String email;
+
   ProfileHeader({@required this.image,@required this.name, @required this.email});
 
   @override

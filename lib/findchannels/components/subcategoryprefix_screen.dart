@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:faithstream/findchannels/components/channel_screen.dart';
 import 'package:faithstream/model/category.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingwidgets/findchannel_widgets.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -46,18 +47,7 @@ class _SubCategoryPrefixesScreenState extends State<SubCategoryPrefixesScreen> {
           height: constraints.maxHeight * 1,
           child: Column(
             children: <Widget>[
-              Center(
-                child: Container(
-                  padding: EdgeInsets.only(left: constraints.maxWidth * 0.02,top: constraints.maxHeight * 0.025,bottom: constraints.maxHeight * 0.025),
-                  color: Colors.lightBlue.withOpacity(0.3),
-                  width: constraints.maxWidth * 0.9,
-                  height: constraints.maxHeight * 0.08,
-                  child: RichText(text: TextSpan(text: "",children: <TextSpan>[
-                    TextSpan(text: "Step 3: ",style: kTitleText.copyWith(fontSize: 13)),
-                    TextSpan(text: "Select $groupName",style: TextStyle(fontSize: 13,color: Colors.black87))
-                  ]),),
-                ),
-              ),
+              TopHeading(constraints,groupName),
               Center(
                 child: Container(
                   margin: EdgeInsets.only(top: constraints.maxHeight * 0.015),
@@ -70,25 +60,7 @@ class _SubCategoryPrefixesScreenState extends State<SubCategoryPrefixesScreen> {
                         Divider(),
                         GestureDetector(
                           onTap: () {Navigator.push(context, MaterialPageRoute(builder: (cntx) => ChannelScreen(subCategoryPrefixesId: allSubCategories[index].categoryId,))); },
-                          child: Container(
-                            width: constraints.maxWidth * 0.9,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: constraints.maxHeight * 0.03),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: <Widget>[
-                                  if(mounted) Image.network("${allSubCategories[index].iconUrl}",width: 50,height: 30,),
-                                  Padding(
-                                    padding: EdgeInsets.all(0),
-                                    child: Text("${allSubCategories[index].categoryName}"),
-                                  ),
-                                  Spacer(),
-                                  Icon(Icons.arrow_forward_ios,size: 14,),
-                                ],
-                              ),
-                            ),
-                          ),
+                          child: SubCategoryPrefixList(mounted,allSubCategories,index,constraints),
                         ),
                       ],
                     );

@@ -6,6 +6,9 @@ class SharedPrefHelper {
   final String user_id = "user_id";
   final String is_login = "is_login";
   final String member_id = "member_id";
+  final String profile_image = "profile_image";
+  final String first_name = "first_name";
+  final String last_name = "last_name";
 
   Future<void> setUserToken(String token) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -25,5 +28,20 @@ class SharedPrefHelper {
   Future<void> setMemberId(String memberId) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString(member_id, memberId);
+  }
+
+  Future<void> setProfileImage(String profileImage) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString(profile_image, profileImage);
+  }
+
+  Future<void> setFirstName(String firstName) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString(first_name, firstName);
+  }
+
+  Future<void> setLastName(String lastName) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString(last_name, lastName);
   }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:faithstream/homescreen/components/trending_post.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -87,31 +88,12 @@ class _TrendingPostsScreenState extends State<TrendingPostsScreen>
               authorImage: channelInfoJson['data']['logo'],
               likes: "${t['numOfLikes']}",
               subscribers: "${channelInfoJson['data']['numOfSubscribers']}",
-              time: _compareDate(t['dateUpdated']),
+              time: compareDate(t['dateUpdated']),
               views: "${t['numOfViews']}");
           allTrendingPosts.add(newTPost);
         });
     }
   }
-
-  String _compareDate(String dateToCompare) {
-    var dateExpression =
-        DateTime.now().difference(DateTime.parse(dateToCompare));
-    if (dateExpression.inDays == 0) {
-      return dateExpression.inHours < 1
-          ? "${dateExpression.inSeconds} sec"
-          : "${dateExpression.inHours} hrs";
-    } else if (dateExpression.inDays >= 1) {
-      if (dateExpression.inDays > 6 && dateExpression.inDays <= 29) {
-        return "${(dateExpression.inDays / 7).round()} weeks";
-      } else if (dateExpression.inDays > 29) {
-        return "${(dateExpression.inDays / 30).round()} months";
-      } else {
-        return "${(dateExpression.inDays)} days";
-      }
-    }
-  }
-
 
   @override
   void dispose() {

@@ -1,13 +1,19 @@
+import 'package:faithstream/homescreen/components/blog_posts.dart';
 import 'package:faithstream/homescreen/home_screen.dart';
+import 'package:faithstream/singlepost/components/single_post_content.dart';
+import 'package:faithstream/singlepost/single_post.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'loginscreen/login_screen.dart';
 import 'loginscreen/register_screen.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(
+      MultiProvider(providers: [ChangeNotifierProvider(create: (context) => SingleBlogPostState(),)],child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -18,6 +24,15 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
+        sliderTheme: SliderTheme.of(context).copyWith(
+          inactiveTrackColor: Colors.grey,
+          thumbColor: Colors.white,
+          activeTrackColor: Colors.white,
+          overlayColor: Colors.white,
+          thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7.0),
+          overlayShape: RoundSliderOverlayShape(overlayRadius: 8.0),
+        ),
+        bottomSheetTheme: BottomSheetThemeData(backgroundColor: Colors.white),
         primaryColor: Colors.white,
         primarySwatch: Colors.blue,
       ),
@@ -37,6 +52,7 @@ class _HomepageState extends State<Homepage> {
 
   @override
   void initState() {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp,DeviceOrientation.portraitDown,DeviceOrientation.landscapeLeft,DeviceOrientation.landscapeRight]);
     getData();
   }
 

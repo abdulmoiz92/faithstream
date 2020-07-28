@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:faithstream/homescreen/home_screen.dart';
 import 'package:faithstream/model/channel.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingwidgets/findchannel_widgets.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -46,49 +47,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
             height: MediaQuery.of(context).size.height * 1,
             child: Column(
               children: <Widget>[
-                Center(
-                  child: Container(
-                    padding: EdgeInsets.only(
-                        left: constraints.maxWidth * 0.02,
-                        top: constraints.maxHeight * 0.025,
-                        bottom: constraints.maxHeight * 0.025),
-                    color: Colors.lightBlue.withOpacity(0.3),
-                    width: constraints.maxWidth * 0.9,
-                    height: constraints.maxHeight * 0.085,
-                    child: RichText(
-                      text: TextSpan(text: "", children: [
-                        WidgetSpan(
-                            child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text("Subscribe and tap when done",
-                                style: kTitleText.copyWith(fontSize: 13)),
-                            Spacer(),
-                            Container(
-                              color: Colors.red,
-                              margin: EdgeInsets.only(
-                                  right: constraints.maxWidth * 0.02),
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.popUntil(
-                                      context, (route) => route.isFirst);
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: Text(
-                                    "Home",
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ))
-                      ]),
-                    ),
-                  ),
-                ),
+                SubscribeChannelTop(constraints),
                 Center(
                   child: Container(
                     margin: EdgeInsets.only(top: constraints.maxHeight * 0.015),
@@ -113,63 +72,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
                                     colorFilter: ColorFilter.mode(
                                         Colors.black.withOpacity(0.76),
                                         BlendMode.darken))),
-                            child: Container(
-                              child: Column(
-                                children: <Widget>[
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        vertical: constraints.maxHeight * 0.04,
-                                        horizontal:
-                                            constraints.maxWidth * 0.05),
-                                    child: buildChannelContent(
-                                        context,
-                                        allChannels[index].authorImage,
-                                        allChannels[index].channelName,
-                                        index,allChannels),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.bottomRight,
-                                    child: Container(
-                                      margin: EdgeInsets.only(
-                                          right: constraints.maxWidth * 0.03),
-                                      color: Colors.red,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: RichText(
-                                          text: TextSpan(
-                                            children: [
-                                              WidgetSpan(
-                                                child: Padding(
-                                                  padding: EdgeInsets.only(
-                                                      right: 3.0),
-                                                  child: Icon(
-                                                    allChannels[index]
-                                                                .isSubscribed ==
-                                                            false
-                                                        ? Icons.notifications
-                                                        : Icons.done,
-                                                    size: 17,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                  text: allChannels[index]
-                                                              .isSubscribed ==
-                                                          false
-                                                      ? "Subscribe"
-                                                      : "Unsubscribe",
-                                                  style: TextStyle(
-                                                      color: Colors.white))
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            child: SubscribeChannelContent(constraints,allChannels,index,userToken,memberId),
                           );
                         }),
                   ),
@@ -222,13 +125,16 @@ class _ChannelScreenState extends State<ChannelScreen> {
       if (mounted)
         setState(() {
           Channel newChannel = new Channel(
+              id: ch['id'],
               channelBg: ch['banner'],
               authorImage: ch['logo'],
               channelName: ch['name'],
               numOfVideos: ch['numOfVideos'],
               numOfSubscribers: ch['numOfSubscribers'],
-              prefrence: ch['preference'],
-              isSubscribed: ChannelMemberDataJson['data']['isSubscribed']);
+              prefrence: ch['preference'],);
+          if(ChannelMemberDataJson['data']['isSubscribed'] == true) {
+            newChannel.isSubscribedSet = true;
+          }
           allChannels.add(newChannel);
         });
     }
