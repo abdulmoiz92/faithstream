@@ -9,6 +9,7 @@ import 'package:faithstream/model/donation.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/trendingscreen/trending_posts.dart';
+import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/databasemethods/database_methods.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
@@ -17,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'your_blogs.dart';
@@ -47,7 +49,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
           width: double.infinity,
           height: MediaQuery.of(context).size.height * 1,
           child: allBlogs.length > 5
-              ? YourBlogs(allBlogs,memberId,userToken)
+              ? YourBlogs(Provider.of<BlogProvider>(context).getAllBlogs,memberId,userToken)
               : const Center(
             child: CircularProgressIndicator(
               backgroundColor: Colors.red,
@@ -97,7 +99,19 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
 
           Image image;
 
-         DBPost newPost = new DBPost(postId: null);
+         Blog newBlog = new Blog(
+             postId: null,
+             postType: null,
+             videoUrl: null,
+             image: null,
+             title: null,
+             author: null,
+             authorImage: null,
+             date: null,
+             time: null,
+             likes: null,
+             views: null,
+             subscribers: null);
 
           if(mounted)
           setState(() {
@@ -115,19 +129,6 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
                 imageHeight = info.image.height;
               });
             }));
-            Blog newBlog = new Blog(
-                postId: null,
-                postType: null,
-                videoUrl: null,
-                image: null,
-                title: null,
-                author: null,
-                authorImage: null,
-                date: null,
-                time: null,
-                likes: null,
-                views: null,
-                subscribers: null);
 
             List<Donation> donnations = [];
 
@@ -219,29 +220,26 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
                 comments: commentsList,
               );
 
-            newPost.setDBPostId = postData['id'];
-
             var isFavouritejsonData = jsonDecode(isFavouriteData.body);
             if(isFavouriteData.body.isNotEmpty)
               if(isFavouritejsonData['data'] != null)
                 for(var fv in isFavouritejsonData['data'] ) {
                   if(fv['id'] == postData['id']) {
-                    newPost.setIsFavourited = 1;
+                    newBlog.setIsFavourite = 1;
                   }
                 }
 
             if(u['postLikes'] != [])
               for(var il in u['postLikes']) {
                 if(il['memberID'] == memberId) {
-                  newPost.setIsLiked = 1;
+                  newBlog.setIsLiked = 1;
                 }
               }
             allBlogs.add(newBlog);
             donnations = [];
           });
-         await insertDBPost(newPost);
-         newPost.setIsLiked = 0;
-         newPost.setIsFavourited = 0;
+         Provider.of<BlogProvider>(context).addBlog = newBlog;
+         setState(() {});
         }
       }
     }

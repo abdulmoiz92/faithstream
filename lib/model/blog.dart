@@ -24,8 +24,8 @@ class Blog {
   final int imageHeight;
   final bool isTicketAvailable;
   final int eventId;
-  bool _isLiked = false;
-  bool _isFavourite = false;
+  int _isLiked = 0;
+  int _isFavourite = 0;
   final bool isDonationRequired;
   final bool isPaidVideo;
   final bool isPurchased;
@@ -34,21 +34,21 @@ class Blog {
   List<Comment> comments;
   List<Donation> donations;
 
-  set setIsLiked(bool value) {
-    _isLiked = value;
-  }
-
-  get getIsLiked => _isLiked;
-
-  set setIsFavourite(bool value) {
-    _isFavourite = value;
-  }
-
   set addCommentSet(Comment comment) {
     comments.add(comment);
   }
 
   get getIsFavourite => _isFavourite;
+
+  get getIsLiked => _isLiked;
+
+  set setIsLiked(int value) {
+    _isLiked = value;
+  }
+
+  set setIsFavourite(int value) {
+    _isFavourite = value;
+  }
 
   Blog({
     @required this.postId,
@@ -78,24 +78,6 @@ class Blog {
     this.videoPrice,
     this.freeVideoLength
   });
-
-  isLikedSet(bool value) {
-    _isLiked = value;
-  }
-
-  isFavouriteSet(bool value) {
-    _isFavourite = value;
-  }
-
-  StreamController<Comment> streamcomments;
-
-  void addStreamComment(Comment comment) {
-    streamcomments.sink.add(comment);
-  }
-
-  Stream<Comment> getStreamComments() {
-    return streamcomments.stream;
-  }
 
   addComment(Comment comment) {
     comments.add(comment);

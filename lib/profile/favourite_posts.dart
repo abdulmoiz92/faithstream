@@ -7,12 +7,14 @@ import 'package:faithstream/homescreen/components/your_blogs.dart';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FavouritePosts extends StatefulWidget {
@@ -45,7 +47,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
           padding: EdgeInsets.only(bottom: 0),
           width: double.infinity,
           height: MediaQuery.of(context).size.height * 1,
-          child: YourBlogs(favouriteBlogs,memberId,userToken),
+          child: YourBlogs(Provider.of<BlogProvider>(context).getFavouriteTimeLine,memberId,userToken),
           );
       }),
     );
@@ -66,6 +68,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
       userToken = prefs.getString(sph.user_token);
       memberId = prefs.getString(sph.member_id);
     });
+    Provider.of<BlogProvider>(context).resetFavourite = [];
     checkInternet(context,futureFunction: getVideos());
   }
 
@@ -96,6 +99,20 @@ class _FavouritePostsState extends State<FavouritePosts> {
 
           Image image;
 
+          Blog newBlog = new Blog(
+              postId: null,
+              postType: null,
+              videoUrl: null,
+              image: null,
+              title: null,
+              author: null,
+              authorImage: null,
+              date: null,
+              time: null,
+              likes: null,
+              views: null,
+              subscribers: null);
+
           if(mounted)
             setState(() {
               if(u['postType'] == "Event") image = new Image.network(postData['event']['image'] == null ? "" : postData['event']['image']);
@@ -111,19 +128,6 @@ class _FavouritePostsState extends State<FavouritePosts> {
                   imageHeight = info.image.height;
                 });
               }));
-              Blog newBlog = new Blog(
-                  postId: null,
-                  postType: null,
-                  videoUrl: null,
-                  image: null,
-                  title: null,
-                  author: null,
-                  authorImage: null,
-                  date: null,
-                  time: null,
-                  likes: null,
-                  views: null,
-                  subscribers: null);
 
               if (u['postType'] == "Event")
                 newBlog = new Blog(
@@ -193,21 +197,22 @@ class _FavouritePostsState extends State<FavouritePosts> {
                   comments: commentsList,
                 );
 
-              var isFavouritejsonData = jsonDecode(isFavouriteData.body);
+              /*var isFavouritejsonData = jsonDecode(isFavouriteData.body);
               if(isFavouriteData.body.isNotEmpty)
                 if(isFavouritejsonData['data'] != null)
                   for(var fv in isFavouritejsonData['data'] ) {
                     if(fv['id'] == newBlog.postId)
-                      newBlog.setIsFavourite = true;
-                  }
 
-              if(u['postLikes'] != [])
+                  }*/
+
+              /*if(u['postLikes'] != [])
                 for(var il in u['postLikes']) {
                   if(il['memberID'] == memberId)
-                    newBlog.setIsLiked = true;
-                }
-              favouriteBlogs.add(newBlog);
+
+                }*/
             });
+            Provider.of<BlogProvider>(context).addFavouriteTimeLine = newBlog;
+            setState(() {});
         }
       }
     }

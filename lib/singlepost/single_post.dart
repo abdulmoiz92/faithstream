@@ -89,7 +89,6 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
                           authorName: widget.singleBlog.author,
                           authorSubscribers: widget.singleBlog.subscribers,
                           title: widget.singleBlog.title,
-                          isLiked: widget.singleBlog.getIsLiked,
                           postViews: widget.singleBlog.views,
                           postedDate: new DateFormat.yMMMd()
                               .format(DateTime.parse(widget.singleBlog.date)),

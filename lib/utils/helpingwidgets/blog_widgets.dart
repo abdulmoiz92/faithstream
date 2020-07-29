@@ -7,6 +7,7 @@ import 'package:faithstream/homescreen/components/your_blogs.dart';
 import 'package:faithstream/model/dbpost.dart';
 import 'package:faithstream/model/donation.dart';
 import 'package:faithstream/singlepost/single_image.dart';
+import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/databasemethods/database_methods.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -47,97 +48,90 @@ class _AuthorInfoState extends State<AuthorInfo> {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        Container(
-          width: widget.constraints.maxWidth * 0.65,
-          padding: EdgeInsets.symmetric(
-              vertical: widget.constraints.maxHeight * 0.01,
-              horizontal: widget.constraints.maxWidth * 0.03),
-          child: buildAvatarText(
-              context,
-              widget.allBlogs[widget.index].authorImage,
-              widget.allBlogs[widget.index].author,
-              2,
-              Text(
-                widget.allBlogs[widget.index].time,
-                style: kLabelText.copyWith(fontSize: 14),
-              ),
-              null,
-              Colors.black),
-        ),
-        Spacer(),
-        if (widget.allBlogs[widget.index].isTicketAvailable == true)
-          Padding(
-            padding: EdgeInsets.only(right: 8.0),
-            child: GestureDetector(
-              onTap: () {
-                showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (cntx) =>
-                        Container(
-                            height: MediaQuery
-                                .of(context)
-                                .size
-                                .height * 0.7,
-                            margin: EdgeInsets.only(top: 20),
-                            child: BuyTicketsUI(
-                                widget.userToken,
-                                widget.allBlogs[widget.index])));
-              },
-              child: Icon(
-                Icons.loyalty,
-                color: Colors.black87,
-              ),
-            ),
+    Container(
+    width: widget.constraints.maxWidth * 0.65,
+      padding: EdgeInsets.symmetric(
+          vertical: widget.constraints.maxHeight * 0.01,
+          horizontal: widget.constraints.maxWidth * 0.03),
+      child: buildAvatarText(
+          context,
+          widget.allBlogs[widget.index].authorImage,
+          widget.allBlogs[widget.index].author,
+          2,
+          Text(
+            widget.allBlogs[widget.index].time,
+            style: kLabelText.copyWith(fontSize: 14),
           ),
-        if (widget.allBlogs[widget.index].isDonationRequired == true)
-          GestureDetector(
-            onTap: () {
-              widget.allBlogs[widget.index].donations.length == 0
-                  ? showModalBottomSheet(
-                  context: context,
-                  builder: (cntx) => DonationModalSingle())
-                  : showModalBottomSheet(
-                  context: context,
-                  builder: (cntx) =>
-                      DonationModal(
-                          widget.allBlogs[widget.index].donations));
-            },
-            child: Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: Icon(
-                Icons.monetization_on,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        StreamBuilder(
-          stream: controller.stream.asBroadcastStream(),
-          builder: (context, snapshot) {
-            return Container(
-                margin:
-                EdgeInsets.only(right: widget.constraints.maxWidth * 0.02),
-                child: GestureDetector(
-                      onTap: () {
-                        updateDBPostFavourite(
-                            widget.blog.postId, snapshot.data == 1 ? 0 : 1);
-                        controller.sink.addStream(Stream.fromFuture(
-                            findIsFavourited(
-                                widget.allBlogs[widget.index].postId)));
-                        snapshot.data == 1
-                            ? removeFromFavourite(context, widget.userToken,
-                            widget.memberId, widget.blog)
-                            : addToFavourite(context, widget.userToken,
-                            widget.memberId, widget.blog);
-                      },
-                      child: Icon(
-                        Icons.star,
-                        color: snapshot.data == 1 ? Colors.red : Colors.black87,
-                      )),
-                );
-          },
-        ),
-      ],
+          null,
+          Colors.black),
+    ),
+    Spacer(),
+    if (widget.allBlogs[widget.index].isTicketAvailable == true)
+    Padding(
+    padding: EdgeInsets.only(right: 8.0),
+    child: GestureDetector(
+    onTap: () {
+    showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (cntx) =>
+    Container(
+    height: MediaQuery
+        .of(context)
+        .size
+        .height * 0.7,
+    margin: EdgeInsets.only(top: 20),
+    child: BuyTicketsUI(
+    widget.userToken,
+    widget.allBlogs[widget.index])));
+    },
+    child: Icon(
+    Icons.loyalty,
+    color: Colors.black87,
+    ),
+    ),
+    ),
+    if (widget.allBlogs[widget.index].isDonationRequired == true)
+    GestureDetector(
+    onTap: () {
+    widget.allBlogs[widget.index].donations.length == 0
+    ? showModalBottomSheet(
+    context: context,
+    builder: (cntx) => DonationModalSingle())
+        : showModalBottomSheet(
+    context: context,
+    builder: (cntx) =>
+    DonationModal(
+    widget.allBlogs[widget.index].donations));
+    },
+    child: Padding(
+    padding: EdgeInsets.only(right: 8.0),
+    child: Icon(
+    Icons.monetization_on,
+    color: Colors.black87,
+    ),
+    ),
+    ),
+    Container(
+    margin:
+    EdgeInsets.only(right: widget.constraints.maxWidth * 0.02),
+    child: GestureDetector(
+    onTap: () {
+    final BlogProvider provider = Provider.of<BlogProvider>(context);
+    provider.setIsPostFavourite = widget.allBlogs[widget.index].postId;
+    provider.getIsPostFavourtite(widget.allBlogs[widget.index].postId) == 0
+    ? removeFromFavourite(context, widget.userToken,
+    widget.memberId, widget.blog)
+        : addToFavourite(context, widget.userToken,
+    widget.memberId, widget.blog);
+    },
+    child: Icon(
+    Icons.star,
+    color: Provider.of<BlogProvider>(context).getIsPostFavourtite(widget.allBlogs[widget.index].postId) == 1 ? Colors.red : Colors.black87,
+    )),
+    ),
+    ]
+    ,
     );
   }
 
@@ -180,13 +174,10 @@ class _LikeShareCommentState extends State<LikeShareComment> {
           StreamBuilder(
             stream: controller.stream.asBroadcastStream(),
             builder: (context, snapshot) {
-              // ValueNotifier<dynamic> likedValue = ValueNotifier(snapshot.data);
               return buildIconText(context, "Like", Icons.thumb_up, 3.0,
-                  snapshot.data == 1 ? Colors.red : Colors.black87, onTap: () {
-                    updateDBPostLiked(widget.allBlogs[widget.index].postId,
-                        snapshot.data == 1 ? 0 : 1);
-                    controller.sink.addStream(Stream.fromFuture(
-                        findIsLiked(widget.allBlogs[widget.index].postId)));
+                  Provider.of<BlogProvider>(context).getIsPostLiked(widget.allBlogs[widget.index].postId) == 1 ? Colors.red : Colors.black87, onTap: () {
+                  BlogProvider provider =  Provider.of<BlogProvider>(context);
+                  provider.setIsPostLiked = widget.allBlogs[widget.index].postId;
                     likePost(
                         context,
                         widget.userToken,
@@ -268,6 +259,7 @@ class _CommentModalState extends State<CommentModal> with ChangeNotifier {
     if (commentData.body.isNotEmpty) {
       var commentDataJson = json.decode(commentData.body);
       if (commentDataJson['data'] != null) {
+        Provider.of<BlogProvider>(context).resetComments(widget.allBlogs[widget.index].postId);
         if (mounted)
           for (var c in commentDataJson['data']) {
             var userData = await http.get(
@@ -284,7 +276,7 @@ class _CommentModalState extends State<CommentModal> with ChangeNotifier {
                     commentText: c['commentText'],
                     authorName: c['commentedBy'],
                     time: "${compareDate(c['dateCreated'])}");
-                widget.allBlogs[widget.index].addComment(newComment);
+                Provider.of<BlogProvider>(context).addComment(newComment, widget.allBlogs[widget.index].postId);
               });
           }
       }
@@ -1491,12 +1483,15 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
             if (snapshots.connectionState == ConnectionState.done)
               if (snapshots.data['status'] == "error")
                 return Column(crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,children: <Widget>[
-                    Icon(Icons.cloud_off,size: 50,color: Colors.red,),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Icon(Icons.cloud_off, size: 50, color: Colors.red,),
                     SizedBox(height: constraints.maxHeight * 0.05),
-                    Text("Tickets Are Unavailable",style: TextStyle(color: Colors.black87,fontSize: 15),),
+                    Text("Tickets Are Unavailable",
+                      style: TextStyle(color: Colors.black87, fontSize: 15),),
                     SizedBox(height: constraints.maxHeight * 0.01),
-                    Text("Please Check Later",style: TextStyle(color: Colors.black45,fontSize: 15),)
+                    Text("Please Check Later",
+                      style: TextStyle(color: Colors.black45, fontSize: 15),)
                   ],);
             if (snapshots.connectionState == ConnectionState.waiting ||
                 snapshots.connectionState == ConnectionState.done)
@@ -1660,13 +1655,14 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
                                   },
                                   child: GestureDetector(
                                     onTap: () {
-                                      if(payable != 0) {
+                                      if (payable != 0) {
                                         Navigator.pop(context);
                                         showModalBottomSheet(
                                             context: context,
-                                            builder: (cntx) => PaymentMehodModal(double.parse(payable.toString())));
+                                            builder: (cntx) =>
+                                                PaymentMehodModal(double.parse(
+                                                    payable.toString())));
                                       }
-
                                     },
                                     child: Container(
                                       width: constraints.maxWidth * 0.2,
@@ -1676,7 +1672,8 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
                                       padding: EdgeInsets.symmetric(
                                           horizontal: 8.0, vertical: 6.0),
                                       decoration: BoxDecoration(
-                                          color: payable == 0 ? Colors.red.withOpacity(0.4) : Colors.red,
+                                          color: payable == 0 ? Colors.red
+                                              .withOpacity(0.4) : Colors.red,
                                           borderRadius:
                                           BorderRadius.circular(25)),
                                       child: Text(
