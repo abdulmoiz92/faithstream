@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/singlepost/single_post.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
@@ -51,39 +50,34 @@ class VideoNetworkWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CachedNetworkImage(
-      placeholder: (context, url) => Container(
+    return Container(
         width: constraints.maxWidth * 0.9,
         height: constraints.maxHeight * 0.4,
-        child: Image.asset("assets/images/loading.gif"),
-      ),
-      imageUrl: trendingPosts[index].image,
-      imageBuilder: (context, imageProvider) =>
-          GestureDetector(
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (cntx) => SingleBlogPost(
-                      trendingPost:
-                      trendingPosts[index],
-                    ))),
+        child: GestureDetector(
+          onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (cntx) => SingleBlogPost(
+                    trendingPost:
+                    trendingPosts[index],
+                  ))),
+          child: Container(
+            width: constraints.maxWidth * 0.95,
+            height: constraints.maxHeight * 0.4,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                  image: trendingPosts[index].image == null ? AssetImage("assets/images/laptop.png") : NetworkImage(trendingPosts[index].image),
+                  fit: BoxFit.fill,
+                  colorFilter: ColorFilter.mode(
+                      Colors.black.withOpacity(0.4),
+                      BlendMode.darken)),
+            ),
             child: Container(
-              width: constraints.maxWidth * 0.95,
-              height: constraints.maxHeight * 0.4,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                    image: imageProvider,
-                    fit: BoxFit.fill,
-                    colorFilter: ColorFilter.mode(
-                        Colors.black.withOpacity(0.4),
-                        BlendMode.darken)),
-              ),
-              child: Container(
-                height: double.infinity,
-                child: ButtonAndDuration(),
-              ),
+              height: double.infinity,
+              child: ButtonAndDuration(),
             ),
           ),
+        ),
     );
   }
 }

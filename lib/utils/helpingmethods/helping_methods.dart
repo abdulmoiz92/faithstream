@@ -3,10 +3,12 @@ import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/channel.dart';
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
 String compareDate(String dateToCompare) {
   var dateExpression =
@@ -129,7 +131,6 @@ Future<void> commentOnPost(BuildContext context, String userToken,
   var authorName = "${json.decode(userData.body)['data']['firstName']} ${json
       .decode(userData.body)['data']['lastName'] != null ? json.decode(
       userData.body)['data']['lastName'] : ""}";
-  var authorImage = json.decode(userData.body)['data']['profileImage'];
   final response = await http.post(
     "http://api.faithstreams.net/api/Post/AddPostComment",
     headers: <String, String>{
@@ -147,8 +148,24 @@ Future<void> commentOnPost(BuildContext context, String userToken,
   );
 
   if (response.statusCode == 200) {
+    var commentData = await http.get(
+        "http://api.faithstreams.net/api/Post/GetPostComments/${postId}",
+        headers: {"Authorization": "Bearer ${userToken}"});
     if (json.decode(response.body)['data'] != null) {
-      print("successful");
+      if(commentData.body.isNotEmpty) {
+        var commentDataJson = jsonDecode(commentData.body);
+      var singlecomment = commentDataJson['data'][Provider.of<BlogProvider>(context).getCommentsList(postId).length];
+        Comment newComment = new Comment(
+            commentId: singlecomment['id'],
+            commentMemberId: singlecomment['memberID'],
+            authorImage: json.decode(userData.body)['data']
+            ['profileImage'],
+            commentText: singlecomment['commentText'],
+            authorName: singlecomment['commentedBy'],
+            time: compareDate(DateTime.now().toIso8601String()));
+        Provider.of<BlogProvider>(context).addComment(newComment, postId);
+      }
+
     } else {
       print("unsuccessful");
     }
@@ -159,7 +176,7 @@ Future<void> commentOnPost(BuildContext context, String userToken,
   }
 }
 
-Future<void> deleteComment(BuildContext context, String postId, String commentId,String userToken, {Function deleteFromList}) async {
+Future<void> deleteComment(BuildContext context, String postId, String commentId,String userToken) async {
   final response = await http.post(
     "http://api.faithstreams.net/api/Post/DeletePostComment",
     headers: <String, String>{
@@ -175,7 +192,88 @@ Future<void> deleteComment(BuildContext context, String postId, String commentId
   if (response.statusCode == 200) {
     if (json.decode(response.body)['data'] != null) {
       print("successful");
-      deleteFromList;
+      Provider.of<BlogProvider>(context).removeComment(postId, commentId);
+    } else {
+      print(json.decode(response.body).toString());
+    }
+    return true;
+  } else {
+    print(jsonDecode(response.body).toString());
+    print("error");
+  }
+}
+
+Future<void> commentOnVideoPost(BuildContext context, String userToken,
+    String memberId,
+    {String videoId, String commentText, String commentBy, DateTime createdOn, DateTime updatedOn}) async {
+  var userData = await http.get(
+      "http://api.faithstreams.net/api/Member/GetMemberProfile/$memberId",
+      headers: {"Authorization": "Bearer $userToken"});
+  var authorName = "${json.decode(userData.body)['data']['firstName']} ${json
+      .decode(userData.body)['data']['lastName'] != null ? json.decode(
+      userData.body)['data']['lastName'] : ""}";
+  final response = await http.post(
+    "http://api.faithstreams.net/api/Channel/AddVideoComments",
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+      "Authorization": "Bearer $userToken"
+    },
+    body: jsonEncode(<String, dynamic>{
+      'dateCreated': createdOn.toIso8601String(),
+      'dateUpdated': updatedOn.toIso8601String(),
+      'commentText': commentText,
+      'commentedBy': authorName,
+      'authorID': int.parse(memberId),
+      'videoID': videoId
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    var commentData = await http.get(
+        "http://api.faithstreams.net/api/Channel/GetVideoComments/${videoId}",
+        headers: {"Authorization": "Bearer ${userToken}"});
+    if (json.decode(response.body)['data'] != null) {
+      if(commentData.body.isNotEmpty) {
+        var commentDataJson = jsonDecode(commentData.body);
+        var singlecomment = commentDataJson['data'][0];
+        Comment newComment = new Comment(
+            commentId: singlecomment['id'],
+            commentMemberId: singlecomment['authorID'],
+            authorImage: json.decode(userData.body)['data']
+            ['profileImage'],
+            commentText: singlecomment['commentText'],
+            authorName: singlecomment['commentedBy'],
+            time: compareDate(DateTime.now().toIso8601String()));
+        Provider.of<BlogProvider>(context).addTPostComment(newComment, videoId);
+      }
+
+    } else {
+      print("unsuccessful");
+    }
+    return true;
+  } else {
+    print(jsonDecode(response.body).toString());
+    print("error");
+  }
+}
+
+Future<void> deleteVideoComment(BuildContext context, String videoId, String commentId,String userToken) async {
+  final response = await http.post(
+      "http://api.faithstreams.net/api/Channel/DeleteVideoComments",
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+      "Authorization": "Bearer $userToken"
+    },
+    body: jsonEncode(<String, dynamic>{
+      'id': commentId,
+      'videoID': videoId
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    if (json.decode(response.body)['data'] != null) {
+      print("successful");
+      Provider.of<BlogProvider>(context).removeTPostComment(videoId, commentId);
     } else {
       print(json.decode(response.body).toString());
     }
@@ -270,6 +368,34 @@ Future<void> removeFromFavourite(BuildContext context, String userToken, String 
     return true;
   } else {
     buildSnackBar(context, "Server is Busy,try again later");
+    print("error");
+  }
+}
+
+Future<void> addEventFollow(BuildContext context, int eventId, int memberId,String userToken,{bool reminder1,bool reminder2,bool reminder3}) async {
+  final response = await http.post(
+    "http://api.faithstreams.net/api/Member/AddEventFollowUp",
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+      "Authorization": "Bearer $userToken"
+    },
+    body: jsonEncode(<String, dynamic>{
+      "eventID": eventId,
+      "memberID": memberId,
+      "reminder1": reminder1,
+      "reminder2": reminder2,
+      "reminder3": reminder3
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    if (json.decode(response.body)['data'] != null) {
+      print("successful");
+    } else {
+      print(json.decode(response.body).toString());
+    }
+  } else {
+    print(jsonDecode(response.body).toString());
     print("error");
   }
 }

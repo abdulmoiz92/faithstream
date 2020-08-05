@@ -12,6 +12,7 @@ class Blog {
   final String videoUrl;
   final String image;
   final String title;
+  final int authorId;
   final String author;
   final String authorImage;
   final String date;
@@ -33,6 +34,7 @@ class Blog {
   final int freeVideoLength;
   List<Comment> comments;
   List<Donation> donations;
+  final bool isPast;
 
   set addCommentSet(Comment comment) {
     comments.add(comment);
@@ -51,12 +53,14 @@ class Blog {
   }
 
   Blog({
+    this.isPast,
     @required this.postId,
     @required this.postType,
     @required this.videoUrl,
     @required this.image,
     @required this.title,
     @required this.author,
+    @required this.authorId,
     @required this.authorImage,
     @required this.date,
     @required this.time,
@@ -78,12 +82,4 @@ class Blog {
     this.videoPrice,
     this.freeVideoLength
   });
-
-  addComment(Comment comment) {
-    comments.add(comment);
-  }
-
-  resetComments() {
-    comments = [];
-  }
 }

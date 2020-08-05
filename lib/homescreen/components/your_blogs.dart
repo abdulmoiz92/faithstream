@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/singlepost/single_post.dart';
@@ -20,8 +19,9 @@ class YourBlogs extends StatefulWidget {
   final List<Blog> allBlogs;
   final String memberId;
   final String userToken;
+  final bool isSingleChannel;
 
-  YourBlogs(@required this.allBlogs,@required this.memberId,@required this.userToken);
+  YourBlogs(@required this.allBlogs,@required this.memberId,@required this.userToken,{this.isSingleChannel});
 
   @override
   _YourBlogsState createState() => _YourBlogsState();
@@ -34,7 +34,7 @@ class _YourBlogsState extends State<YourBlogs> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (cntx, constraints) {
       return widget.allBlogs == null
-          ? Text("No Blogs To Show")
+          ? Center(child: Text("Nothing To Show"))
           : ListView.builder(
               addAutomaticKeepAlives: false,
               itemCount: widget.allBlogs.length,
@@ -52,19 +52,19 @@ class _YourBlogsState extends State<YourBlogs> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          AuthorInfo(widget.allBlogs, index,constraints,widget.memberId,widget.userToken,widget.allBlogs[index]),
+                          AuthorInfo(widget.allBlogs, index,constraints,widget.memberId,widget.userToken,widget.allBlogs[index],isSingleChannel: widget.isSingleChannel,),
                           if (widget.allBlogs[index].postType == "Image")
                             ImagePostWidget(widget.allBlogs,index,constraints),
                           if (widget.allBlogs[index].postType == "Video")
                             VideoPostWidget(widget.allBlogs,index,constraints),
                           if(widget.allBlogs[index].postType == "Event")
                               widget.allBlogs[index].videoUrl == null
-                                  ? EventImagePostWidget(widget.allBlogs,index,constraints)
+                                  ? EventImagePostWidget(widget.allBlogs,index,constraints,widget.memberId,widget.userToken,isSingleChannel: widget.isSingleChannel,)
                                   : EventVideoPostWidget(widget.allBlogs,index,constraints),
                           /* ------------------- Like Share Comment -------------------------- */
                           Align(
                             alignment: Alignment.centerLeft,
-                            child: LikeShareComment(widget.allBlogs,index,constraints,widget.memberId,widget.userToken),
+                            child: LikeShareComment(widget.allBlogs,index,constraints,widget.memberId,widget.userToken,isSingleChannel: widget.isSingleChannel,),
                           ),
                         ],
                       ),

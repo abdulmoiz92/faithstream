@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:http/http.dart' as http;
 import 'package:faithstream/model/blog.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SingleBlogPost extends StatefulWidget {
@@ -84,6 +86,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
                           userToken,
                           memberId,
                           blog: widget.singleBlog,
+                          channelId: widget.singleBlog.authorId,
                           postId: widget.singleBlog.postId,
                           authorImage: widget.singleBlog.authorImage,
                           authorName: widget.singleBlog.author,
@@ -98,6 +101,8 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
                             : SinglePostContent(
                           userToken,
                           memberId,
+                          postId: widget.trendingPost.videoId,
+                          channelId: widget.trendingPost.channelId,
                           authorImage: widget.trendingPost.authorImage,
                           authorName: widget.trendingPost.author,
                           authorSubscribers: widget.trendingPost.subscribers,
@@ -106,6 +111,9 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
                           postedDate: new DateFormat.yMMMd()
                               .format(DateTime.parse(widget.trendingPost.date)),
                           postDescription: "Something",
+                          comments: widget.trendingPost.videoComments,
+                          isTrending: true,
+                          trendingPost: widget.trendingPost,
                         )),
                 ],
               );
@@ -116,18 +124,17 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
     );
   }
 
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   @override
   void initState() {
     getData();
     super.initState();
   }
-
-
-  @override
-  void dispose() {
-    widget.singleBlog.comments = [];
-  }
-
   Future<SharedPreferences> getData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     SharedPrefHelper sph = SharedPrefHelper();
@@ -135,8 +142,11 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
       userToken = prefs.getString(sph.user_token);
       memberId = prefs.getString(sph.member_id);
     });
-    if(widget.singleBlog.comments.length == 0)
-    getComments();
+    if(widget.singleBlog != null)
+    Provider.of<BlogProvider>(context).resetComments(widget.singleBlog.postId);
+    if(widget.trendingPost != null)
+    Provider.of<BlogProvider>(context).resetTPostComments(widget.trendingPost.videoId);
+    widget.trendingPost != null ? getVideoComments() : getComments();
   }
 
   Future<void> getComments() async {
@@ -146,22 +156,54 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
     if (commentData.body.isNotEmpty) {
       var commentDataJson = json.decode(commentData.body);
       if (commentDataJson['data'] != null) {
+        Provider.of<BlogProvider>(context).resetComments(widget.singleBlog.postId);
         if(mounted)
           for (var c in commentDataJson['data']) {
             var userData = await http.get(
                 "http://api.faithstreams.net/api/Member/GetMemberProfile/${c['memberID']}",
                 headers: {"Authorization": "Bearer $userToken"});
             if (commentDataJson['data'] == []) continue;
-            if(mounted) setState(() {
+            if(mounted) {
               Comment newComment = new Comment(
                   commentId: c['id'],
                   commentMemberId: c['memberID'],
-                  authorImage: json.decode(userData.body)['data']['profileImage'],
+                  authorImage: json.decode(
+                      userData.body)['data']['profileImage'],
                   commentText: c['commentText'],
                   authorName: c['commentedBy'],
                   time: "${compareDate(c['dateCreated'])}");
-              widget.singleBlog.comments.add(newComment);
-            });
+              Provider.of<BlogProvider>(context).addComment(
+                  newComment, widget.singleBlog.postId);
+            }
+          }
+      }
+    }
+  }
+
+  Future<void> getVideoComments() async {
+    var commentData = await http.get(
+        "http://api.faithstreams.net/api/Channel/GetVideoComments/${widget.trendingPost.videoId}",
+        headers: {"Authorization": "Bearer $userToken"});
+    if (commentData.body.isNotEmpty) {
+      var commentDataJson = json.decode(commentData.body);
+      if (commentDataJson['data'] != null) {
+        if(mounted)
+          for (var c in commentDataJson['data']) {
+            var userData = await http.get(
+                "http://api.faithstreams.net/api/Member/GetMemberProfile/${c['authorID']}",
+                headers: {"Authorization": "Bearer $userToken"});
+            if (commentDataJson['data'] == []) continue;
+            if(mounted) {
+              Comment newComment = new Comment(
+                  commentId: c['id'],
+                  commentMemberId: c['authorID'],
+                  authorImage: json.decode(
+                      userData.body)['data']['profileImage'],
+                  commentText: c['commentText'],
+                  authorName: c['commentedBy'],
+                  time: "${compareDate(c['dateCreated'])}");
+              Provider.of<BlogProvider>(context).addTPostComment(newComment, widget.trendingPost.videoId);
+            }
           }
       }
     }

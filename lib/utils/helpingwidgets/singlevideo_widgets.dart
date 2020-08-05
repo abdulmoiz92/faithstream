@@ -2,9 +2,11 @@ import 'dart:convert';
 
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
+import 'package:faithstream/model/trending_posts.dart';
+import 'package:faithstream/singlepost/single_channel.dart';
 import 'package:faithstream/singlepost/single_post.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
-import 'package:faithstream/utils/databasemethods/database_methods.dart';
+import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/helpingwidgets/blog_widgets.dart';
 import 'package:flutter/cupertino.dart';
@@ -22,8 +24,10 @@ class TitleAndLikes extends StatelessWidget {
   final String postLikes;
   final BoxConstraints constraints;
   final Blog blog;
+  final TPost trendingPost;
 
-  TitleAndLikes(this.title, this.postViews, this.postLikes, this.constraints,this.blog);
+  TitleAndLikes(this.title, this.postViews, this.postLikes, this.constraints,
+      {this.blog, this.trendingPost});
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +38,23 @@ class TitleAndLikes extends StatelessWidget {
         Text(title, maxLines: 2, style: kTitleText.copyWith(fontSize: 15)),
         SizedBox(height: constraints.maxHeight * 0.02),
         Text("$postViews Views | $postLikes Likes"),
-        SizedBox(height: constraints.maxHeight * 0.04,),
-        if(blog.isPurchased == false && blog.isPaidVideo == true)
-          FlatButton(color: Colors.red,child: buildIconText(context, "Buy Video", Icons.attach_money, 2.0, Colors.white,onTap: () {showModalBottomSheet(context: context,builder: (cntx) => PaymentMehodModal(blog.videoPrice));}),onPressed: () {},),
+        SizedBox(
+          height: constraints.maxHeight * 0.04,
+        ),
+        if (blog != null
+            ? blog.isPurchased == false && blog.isPaidVideo == true
+            : trendingPost.isPaid == true && trendingPost.isPurchased == false)
+          FlatButton(
+            color: Colors.red,
+            child: buildIconText(
+                context, "Buy Video", Icons.attach_money, 2.0, Colors.white,
+                onTap: () {
+              showModalBottomSheet(
+                  context: context,
+                  builder: (cntx) => PaymentMehodModal(blog.videoPrice));
+            }),
+            onPressed: () {},
+          ),
       ],
     );
   }
@@ -52,22 +70,19 @@ class LikeAndShareVideo extends StatefulWidget {
 }
 
 class _LikeAndShareVideoState extends State<LikeAndShareVideo> {
-  Stream get strem => Stream.fromFuture(findIsLiked(widget.singleBlog.postId));
-
   @override
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.only(right: 10),
-          child: StreamBuilder(
-            stream: strem,
-            builder: (context, snapshot) {
-              return Icon(
-                Icons.thumb_up,
-                color: snapshot.data == 1 ? Colors.red : Colors.black87,
-              );
-            },
+          child: Icon(
+            Icons.thumb_up,
+            color: Provider.of<BlogProvider>(context)
+                        .getIsPostLiked(widget.singleBlog.postId) ==
+                    1
+                ? Colors.red
+                : Colors.black87,
           ),
         ),
         Padding(
@@ -84,25 +99,32 @@ class ChannelInfoWidget extends StatelessWidget {
   final String authorImage;
   final String numOfSubscribers;
   final BoxConstraints constraints;
+  final int channelId;
 
   ChannelInfoWidget(this.authorImage, this.authorName, this.numOfSubscribers,
-      this.constraints);
+      this.constraints, {this.channelId});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Container(
-          width: 35,
-          height: 35,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(50),
-            image: DecorationImage(
-                image: authorImage == null
-                    ? AssetImage("assets/images/test.jpeg")
-                    : NetworkImage(authorImage),
-                fit: BoxFit.fill),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (cntx) => SingleChannel(channelId)));
+          },
+          child: Container(
+            width: 35,
+            height: 35,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(50),
+              image: DecorationImage(
+                  image: authorImage == null
+                      ? AssetImage("assets/images/test.jpeg")
+                      : NetworkImage(authorImage),
+                  fit: BoxFit.fill),
+            ),
           ),
         ),
         Padding(
@@ -110,7 +132,15 @@ class ChannelInfoWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(authorName, style: kTitleText.copyWith(fontSize: 15)),
+              GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (cntx) => SingleChannel(channelId)));
+                  },
+                  child: Text(authorName,
+                      style: kTitleText.copyWith(fontSize: 15))),
               SizedBox(
                 height: constraints.maxHeight * 0.01,
               ),
@@ -175,12 +205,13 @@ class CommentHeadingAndAdd extends StatelessWidget {
   final BoxConstraints constraints;
   final String postId;
   final List<Comment> comments;
-  Blog blog;
+  final bool isTrending;
 
   CommentHeadingAndAdd(
       {@required this.constraints,
       @required this.postId,
-      @required this.comments,this.blog});
+      @required this.comments,
+      @required this.isTrending});
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +237,7 @@ class CommentHeadingAndAdd extends StatelessWidget {
                           constraints: constraints,
                           postId: postId,
                           comments: comments,
-                          blog: blog,
+                          isTrending: isTrending,
                         ));
               },
               child: Text(
@@ -223,12 +254,13 @@ class AddCommentSingle extends StatefulWidget {
   final BoxConstraints constraints;
   final List<Comment> comments;
   final String postId;
-  Blog blog;
+  final bool isTrending;
 
   AddCommentSingle(
       {@required this.constraints,
       @required this.postId,
-      @required this.comments,this.blog});
+      @required this.comments,
+      @required this.isTrending});
 
   @override
   _AddCommentSingleState createState() => _AddCommentSingleState();
@@ -283,6 +315,9 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
                         maxLines: null,
                         style: TextStyle(color: Colors.black),
                         controller: commentController,
+                        onChanged: (value) {
+                          setState(() {});
+                        },
                         decoration: InputDecoration(
                             border: InputBorder.none,
                             focusedBorder: InputBorder.none,
@@ -295,34 +330,37 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
                     ),
                     Container(
                       padding: EdgeInsets.only(left: 10.0),
-                      child: Consumer<SingleBlogPostState>(
-                        builder: (context,_singleBlog,_) {
-                          return GestureDetector(
-                            onTap: () {
-                              Comment newComment = new Comment(
-                                  commentText: commentController.value.text,
-                                  authorName: fullName,
-                                  authorImage: profileImage,
-                                  time: DateTime.now().toIso8601String());
-                              widget.blog.addCommentSet = newComment;
-                              _singleBlog.reassemble();
-                              commentOnPost(
-                                context,
-                                userToken,
-                                "${memberId}",
-                                postId: widget.postId,
-                                commentText: commentController.value.text,
-                                createdOn: DateTime.now(),
-                                updatedOn: DateTime.now(),
-                              );
-                              Navigator.pop(context);
-                            },
-                            child: Icon(
-                              Icons.send,
-                              color: Colors.black87,
-                            ),
-                          );
+                      child: GestureDetector(
+                        onTap: () {
+                          if (commentController.text.isNotEmpty) {
+                            widget.isTrending != true
+                                ? commentOnPost(
+                                    context,
+                                    userToken,
+                                    "${memberId}",
+                                    postId: widget.postId,
+                                    commentText: commentController.value.text,
+                                    createdOn: DateTime.now(),
+                                    updatedOn: DateTime.now(),
+                                  ).then((value) => Navigator.pop(context))
+                                : commentOnVideoPost(
+                                    context,
+                                    userToken,
+                                    "${memberId}",
+                                    videoId: widget.postId,
+                                    commentText: commentController.value.text,
+                                    createdOn: DateTime.now(),
+                                    updatedOn: DateTime.now(),
+                                  ).then((value) => Navigator.pop(context));
+                            commentController.clear();
+                          }
                         },
+                        child: Icon(
+                          Icons.send,
+                          color: commentController.text.isEmpty
+                              ? Colors.black87.withOpacity(0.4)
+                              : Colors.black87,
+                        ),
                       ),
                     ),
                   ],
@@ -341,9 +379,10 @@ class SingleComment extends StatefulWidget {
   final String memberId;
   final String userToken;
   final String postId;
+  final bool isTrending;
 
   SingleComment(this.userToken, this.memberId, this.postId, this.comments,
-      this.index, this.constraints);
+      this.index, this.constraints, this.isTrending);
 
   @override
   _SingleCommentState createState() => _SingleCommentState();
@@ -405,11 +444,11 @@ class _SingleCommentState extends State<SingleComment> {
                         child: GestureDetector(
                           onTap: () {
                             var commentFormat = widget.comments[widget.index];
-                            setState(() {
-                              widget.comments.removeAt(widget.index);
-                            });
-                            deleteComment(context, widget.postId,
-                                commentFormat.commentId, widget.userToken);
+                            widget.isTrending != true
+                                ? deleteComment(context, widget.postId,
+                                    commentFormat.commentId, widget.userToken)
+                                : deleteVideoComment(context, widget.postId,
+                                    commentFormat.commentId, widget.userToken);
                           },
                           child: Icon(
                             Icons.delete_outline,

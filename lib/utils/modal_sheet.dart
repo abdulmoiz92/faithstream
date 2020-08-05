@@ -95,14 +95,11 @@ class _ModalBottomState extends State<ModalBottom> {
                               padding: EdgeInsets.only(top: 10),
                               child: GestureDetector(
                                   onTap: () {
-                                    setState(() {
                                       deleteComment(
                                           context,
                                           widget.postId,
                                           widget.scrollingList[index].commentId,
-                                          widget.userToken,
-                                      deleteFromList: deleteCommentFromList(index));
-                                    });
+                                          widget.userToken);
                                   },
                                   child: Text(
                                     "Delete",
@@ -123,10 +120,4 @@ class _ModalBottomState extends State<ModalBottom> {
       },
     );
   }
-
-  Function deleteCommentFromList(int index) {
-    setState(() {
-      widget.scrollingList.removeAt(index);
-    });
   }
-}

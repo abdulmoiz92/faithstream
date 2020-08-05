@@ -4,18 +4,14 @@ import 'dart:ui' as ui;
 
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
-import 'package:faithstream/model/dbpost.dart';
 import 'package:faithstream/model/donation.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
-import 'package:faithstream/trendingscreen/trending_posts.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
-import 'package:faithstream/utils/databasemethods/database_methods.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -68,6 +64,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
       userToken = prefs.getString(sph.user_token);
       memberId = prefs.getString(sph.member_id);
     });
+    Provider.of<BlogProvider>(context).resetBlog = [];
     checkInternet(context,futureFunction: getVideos());
   }
 
@@ -149,6 +146,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
                       : postData['event']['video'],
                   image: postData['event']['image'],
                   title: postData['title'],
+                  authorId: postData['authorID'],
                   author: postData['authorName'],
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
@@ -171,8 +169,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
                   isDonationRequired: postData['isDonationRequire'],
                   donations: donnations,
                   isTicketAvailable: postData['event']['isTicketPurchaseRequired'],
-                  imageWidth: postData['event']['image'] == null ?  null : imageWidth,
-                  imageHeight: postData['event']['image'] == null ? null : imageHeight
+                  isPast: postData['event']['isPast']
               );
             if (u['postType'] == "Video")
               newBlog = new Blog(
@@ -181,6 +178,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
                   videoUrl: postData['video']['url'],
                   image: postData['video']['thumbnail'],
                   title: postData['title'],
+                  authorId: postData['authorID'],
                   author: postData['authorName'],
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
@@ -206,6 +204,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen> with AutomaticKeepAliv
                 videoUrl: null,
                 image: postData['image']['url'],
                 title: postData['title'],
+                authorId: postData['authorID'],
                 author: postData['authorName'],
                 authorImage: postData['authorImage'],
                 date: postData['dateCreated'],

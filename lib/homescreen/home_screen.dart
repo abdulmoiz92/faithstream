@@ -1,24 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:faithstream/findchannels/find_channels.dart';
 import 'package:faithstream/homescreen/components/blog_posts.dart';
-import 'package:faithstream/homescreen/components/your_blogs.dart';
-import 'package:faithstream/model/blog.dart';
-import 'package:faithstream/model/comment.dart';
-import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/profile/profile_main.dart';
-import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/trendingscreen/trending_posts.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {

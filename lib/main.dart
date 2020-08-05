@@ -5,7 +5,6 @@ import 'package:faithstream/homescreen/home_screen.dart';
 import 'package:faithstream/singlepost/components/single_post_content.dart';
 import 'package:faithstream/singlepost/single_post.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
-import 'package:faithstream/utils/databasemethods/database_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

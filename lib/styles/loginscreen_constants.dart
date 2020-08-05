@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:chewie/chewie.dart';
 import 'package:faithstream/homescreen/home_screen.dart';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/channel.dart';
@@ -84,20 +83,23 @@ Row buildAvatarText(
     double height,
     Widget optionalWidgetOne,
     Widget optionalWidgetTwo,
-    Color color) {
+    Color color,{Function onTap}) {
   return Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
-      Container(
-        width: 35,
-        height: 35,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(50),
-          image: DecorationImage(
-            image: image == null
-                ? AssetImage("assets/images/test.jpeg")
-                : NetworkImage(image),
-            fit: BoxFit.fill,
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 35,
+          height: 35,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(50),
+            image: DecorationImage(
+              image: image == null
+                  ? AssetImage("assets/images/test.jpeg")
+                  : NetworkImage(image),
+              fit: BoxFit.fill,
+            ),
           ),
         ),
       ),
@@ -109,14 +111,17 @@ Row buildAvatarText(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                title != null ? Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14),
+                title != null ? GestureDetector(
+                  onTap: onTap,
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14),
+                  ),
                 ) : Text(""),
                 if (optionalWidgetOne != null && optionalWidgetTwo != null)
                   SizedBox(height: height),
