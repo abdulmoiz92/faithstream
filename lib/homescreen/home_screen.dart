@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:faithstream/findchannels/find_channels.dart';
 import 'package:faithstream/homescreen/components/blog_posts.dart';
 import 'package:faithstream/profile/profile_main.dart';
+import 'package:faithstream/searchscreens/search_channels.dart';
 import 'package:faithstream/trendingscreen/trending_posts.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
@@ -31,8 +32,21 @@ class _HomeScreenState extends State<HomeScreen> {
           "FaithStream",
           style: TextStyle(color: Colors.black87, fontSize: 15),
         ),
+        actions: <Widget>[
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (cntx) => Search()));
+              },
+              child: Icon(
+                Icons.search,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
         backgroundColor: Colors.white);
-    final mediaQuery = MediaQuery.of(context);
     return DefaultTabController(
       length: 4,
       child: Scaffold(
@@ -54,7 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(50),
                       image: DecorationImage(
-                          image: profileImage == null ? AssetImage("assets/images/test.jpeg") : NetworkImage(profileImage),
+                          image: profileImage == null
+                              ? AssetImage("assets/images/test.jpeg")
+                              : NetworkImage(profileImage),
                           fit: BoxFit.fill)),
                 )),
           ],
@@ -78,7 +94,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   @override
   void initState() {
     getData();
@@ -101,4 +116,51 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     super.dispose();
   }
+
+  /*showDialog(
+  context: context,
+  builder: (BuildContext context) {
+  return AlertDialog(
+  title: Text("What To Search ?"),
+  content: Column(
+  mainAxisSize: MainAxisSize.min,
+  children: <Widget>[
+  Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+  child: Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: <Widget>[
+  GestureDetector(
+  onTap: () {
+  Navigator.pop(context);
+  Navigator.push(context, MaterialPageRoute(builder: (cntx) => SearchChannels()));
+  },
+  child: Column(
+  children: <Widget>[
+  Icon(Icons.image,color: Colors.red,),
+  Padding(
+  padding: const EdgeInsets.only(top: 16.0),
+  child: Text("Channels"),
+  ),
+  ],
+  ),
+  ),
+  Spacer(),
+  Column(
+  children: <Widget>[
+  Icon(Icons.timeline,color: Colors.red,),
+  Padding(
+  padding: const EdgeInsets.only(top: 16.0),
+  child: Text("Posts"),
+  ),
+  ],
+  ),
+  ],
+  ),
+  ),
+  ],
+  ),
+  );
+  });*/
 }

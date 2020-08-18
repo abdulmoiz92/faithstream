@@ -9,6 +9,7 @@ import 'package:faithstream/profile/edit_profile.dart';
 import 'package:faithstream/profile/mydonations.dart';
 import 'package:faithstream/profile/subscribed_channels.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -109,8 +110,11 @@ class _ProfileNavigationState extends State<ProfileNavigation> {
                       color: Colors.black12,
                     ),
                     buildProfileCard(
-                        "My Events", Icons.event, Colors.deepOrange,onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (cntx) => EventsFollowed()));
+                        "My Events", Icons.event, Colors.deepOrange, onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (cntx) => EventsFollowed()));
                     }),
                     Divider(
                       color: Colors.black12,
@@ -157,9 +161,10 @@ class _ProfileNavigationState extends State<ProfileNavigation> {
 
   Future<SharedPreferences> logout(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.clear();
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (cntx) => LoginScreen()));
+    await deleteCacheDir().then((_) => print("done delete")).then((_) => prefs
+        .clear()
+        .then((_) => Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (cntx) => LoginScreen()))));
   }
 
   Future<SharedPreferences> getData() async {

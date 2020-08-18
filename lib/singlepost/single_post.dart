@@ -142,10 +142,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
       userToken = prefs.getString(sph.user_token);
       memberId = prefs.getString(sph.member_id);
     });
-    if(widget.singleBlog != null)
-    Provider.of<BlogProvider>(context).resetComments(widget.singleBlog.postId);
-    if(widget.trendingPost != null)
-    Provider.of<BlogProvider>(context).resetTPostComments(widget.trendingPost.videoId);
+    widget.trendingPost != null ? Provider.of<BlogProvider>(context).resetTPostComments() : Provider.of<BlogProvider>(context).resetComments();
     widget.trendingPost != null ? getVideoComments() : getComments();
   }
 
@@ -156,7 +153,6 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
     if (commentData.body.isNotEmpty) {
       var commentDataJson = json.decode(commentData.body);
       if (commentDataJson['data'] != null) {
-        Provider.of<BlogProvider>(context).resetComments(widget.singleBlog.postId);
         if(mounted)
           for (var c in commentDataJson['data']) {
             var userData = await http.get(
@@ -172,8 +168,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
                   commentText: c['commentText'],
                   authorName: c['commentedBy'],
                   time: "${compareDate(c['dateCreated'])}");
-              Provider.of<BlogProvider>(context).addComment(
-                  newComment, widget.singleBlog.postId);
+              Provider.of<BlogProvider>(context).addComment(newComment);
             }
           }
       }
@@ -202,7 +197,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
                   commentText: c['commentText'],
                   authorName: c['commentedBy'],
                   time: "${compareDate(c['dateCreated'])}");
-              Provider.of<BlogProvider>(context).addTPostComment(newComment, widget.trendingPost.videoId);
+              Provider.of<BlogProvider>(context).addTPostComment(newComment);
             }
           }
       }

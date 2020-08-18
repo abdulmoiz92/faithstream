@@ -1,11 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:async/async.dart';
 import 'package:faithstream/model/donation.dart';
+import 'package:faithstream/model/pendingcomment.dart';
+import 'package:faithstream/model/pendingfavourite.dart';
+import 'package:faithstream/model/pendinglike.dart';
 import 'package:faithstream/profile/event_followed.dart';
 import 'package:faithstream/singlepost/single_channel.dart';
 import 'package:faithstream/singlepost/single_image.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
+import 'package:faithstream/utils/ProviderUtils/pending_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,14 +38,13 @@ class AuthorInfo extends StatefulWidget {
   final bool isSingleChannel;
 
   AuthorInfo(this.allBlogs, this.index, this.constraints, this.memberId,
-      this.userToken, this.blog,{this.isSingleChannel});
+      this.userToken, this.blog, {this.isSingleChannel});
 
   @override
   _AuthorInfoState createState() => _AuthorInfoState();
 }
 
 class _AuthorInfoState extends State<AuthorInfo> {
-  StreamController controller = new StreamController.broadcast();
 
   @override
   Widget build(BuildContext context) {
@@ -60,10 +65,19 @@ class _AuthorInfoState extends State<AuthorInfo> {
                 style: kLabelText.copyWith(fontSize: 14),
               ),
               null,
-              Colors.black,onTap: () => Navigator.push(context, MaterialPageRoute(builder: (cntx) => SingleChannel(widget.allBlogs[widget.index].authorId)))),
+              Colors.black,
+              authorImageBytes: Provider
+                  .of<BlogProvider>(context)
+                  .allBlogs[widget.index].authorImageBytes,
+              onTap: () =>
+                  Navigator.push(context, MaterialPageRoute(
+                      builder: (cntx) =>
+                          SingleChannel(
+                              widget.allBlogs[widget.index].authorId)))),
         ),
-        Spacer(),
-        if (widget.allBlogs[widget.index].isTicketAvailable == true /* && widget.allBlogs[widget.index].isPast != true */)
+        /*Spacer(),
+        if (widget.allBlogs[widget.index].isTicketAvailable ==
+            true */ /* && widget.allBlogs[widget.index].isPast != true */ /*)
           Padding(
             padding: EdgeInsets.only(right: 8.0),
             child: GestureDetector(
@@ -108,31 +122,45 @@ class _AuthorInfoState extends State<AuthorInfo> {
                 color: Colors.black87,
               ),
             ),
-          ),
-        if(widget.isSingleChannel != true)
+          ),*/
+        Spacer(),
         Container(
           margin:
           EdgeInsets.only(right: widget.constraints.maxWidth * 0.02),
           child: GestureDetector(
-              onTap: () {
-                final BlogProvider provider = Provider.of<BlogProvider>(
-                    context);
-                provider.setIsPostFavourite =
-                    widget.allBlogs[widget.index].postId;
-                provider.getIsPostFavourtite(
+            onTap: () async {
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              SharedPrefHelper sph = SharedPrefHelper();
+              Provider
+                  .of<BlogProvider>(context)
+                  .setIsPostFavourite = widget.allBlogs[widget.index].postId;
+              bool internet = await hasInternet();
+              if(internet == false)
+                Provider.of<BlogProvider>(context).getIsPostFavourtite(
                     widget.allBlogs[widget.index].postId) == 0
-                    ? removeFromFavourite(context, widget.userToken,
-                    widget.memberId, widget.blog)
-                    : addToFavourite(context, widget.userToken,
-                    widget.memberId, widget.blog);
-              },
-              child: Icon(
-                Icons.star,
-                color: Provider.of<BlogProvider>(context).getIsPostFavourtite(
-                    widget.allBlogs[widget.index].postId) == 1
-                    ? Colors.red
-                    : Colors.black87,
-              )),
+                    ? Provider.of<PendingRequestProvider>(context).addPendingRemoveFavourite = new PendingFavourite(userToken: widget.userToken,memberId: widget.memberId,createdOn: DateTime.now(),updatedOn: DateTime.now(),blogId: widget.allBlogs[widget.index].postId) :
+              Provider.of<PendingRequestProvider>(context).addPendingFavourite = new PendingFavourite(userToken: widget.userToken,memberId: widget.memberId,createdOn: DateTime.now(),updatedOn: DateTime.now(),blogId: widget.allBlogs[widget.index].postId);
+              if(internet == false)
+                Provider.of<BlogProvider>(context).getIsPostFavourtite(
+                    widget.allBlogs[widget.index].postId) == 0
+                    ? sph.savePosts(sph.pendingremovefavourite_requests, Provider.of<PendingRequestProvider>(context).pendingRemoveFavourites)
+                    : sph.savePosts(sph.pendingfavourite_requests, Provider.of<PendingRequestProvider>(context).pendingFavourites);
+              if(internet == true)
+              Provider.of<BlogProvider>(context).getIsPostFavourtite(
+                  widget.allBlogs[widget.index].postId) == 0
+                  ? removeFromFavourite(context, widget.userToken,
+                  widget.memberId, widget.blog.postId)
+                  : addToFavourite(context, widget.userToken,
+                  widget.memberId, widget.blog.postId);
+            },
+            child:
+            Icon(Icons.star,
+              color: Provider.of<BlogProvider>(context).getIsPostFavourtite(
+                  widget.allBlogs[widget.index].postId) == 1
+                  ? Colors.red
+                  : Colors.black87,
+            ),
+          ),
         ),
       ],
     );
@@ -153,7 +181,7 @@ class LikeShareComment extends StatefulWidget {
   final bool isSingleChannel;
 
   LikeShareComment(this.allBlogs, this.index, this.constraints, this.memberId,
-      this.userToken,{this.isSingleChannel});
+      this.userToken, {this.isSingleChannel});
 
   @override
   _LikeShareCommentState createState() => _LikeShareCommentState();
@@ -169,32 +197,41 @@ class _LikeShareCommentState extends State<LikeShareComment> {
       padding: EdgeInsets.symmetric(
           horizontal: widget.constraints.maxWidth * 0.03,
           vertical: widget.constraints.maxHeight * 0.02),
-      child: widget.isSingleChannel == true ? Container() : Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
-          StreamBuilder(
-            stream: controller.stream.asBroadcastStream(),
-            builder: (context, snapshot) {
-              return buildIconText(context, "Like", Icons.thumb_up, 3.0,
-                  Provider.of<BlogProvider>(context).getIsPostLiked(
-                      widget.allBlogs[widget.index].postId) == 1
-                      ? Colors.red
-                      : Colors.black87, onTap: () {
-                    BlogProvider provider = Provider.of<BlogProvider>(context);
-                    provider.setIsPostLiked =
-                        widget.allBlogs[widget.index].postId;
-                    likePost(
-                        context,
-                        widget.userToken,
-                        "${widget.memberId}",
-                        DateTime.now(),
-                        DateTime.now(),
-                            () {},
-                        widget.allBlogs[widget.index]);
-                  });
-            },
-          ),
+          buildIconText(context, "Like", Icons.thumb_up, 3.0,
+              Provider.of<
+                  BlogProvider>(context).getIsPostLiked(
+                  widget.allBlogs[widget.index].postId) == 1
+                  ? Colors.red
+                  : Colors.black87,
+              onTap: () async {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                SharedPrefHelper sph = SharedPrefHelper();
+                BlogProvider provider = Provider.of<BlogProvider>(context);
+                provider.setIsPostLiked = widget.allBlogs[widget.index].postId;
+                AssetsAudioPlayer.playAndForget(
+                  Audio("assets/audio/likesound.mp3"),
+                );
+                bool internet = await hasInternet();
+                print(internet);
+                print(await sph.readPosts(sph.pendinglikes_requests));
+                if(internet == false) {
+                  Provider.of<PendingRequestProvider>(context).addPendingLike = new PendingLike(userToken: widget.userToken,memberId: widget.memberId,createdOn: DateTime.now(),updatedOn: DateTime.now(),blogId: widget.allBlogs[widget.index].postId);
+                  sph.savePosts(sph.pendinglikes_requests, Provider.of<PendingRequestProvider>(context).pendingLikes);
+                }
+                if(internet == true)
+                likePost(
+                    context,
+                    widget.userToken,
+                    "${widget.memberId}",
+                    DateTime.now(),
+                    DateTime.now(),
+                        () {},
+                    widget.allBlogs[widget.index].postId);
+              }),
           Spacer(),
           buildIconText(context, "Share", Icons.share, 3.0, Colors.black87),
           Spacer(),
@@ -258,8 +295,7 @@ class _CommentModalState extends State<CommentModal> {
         fullName =
         "${prefs.getString(sph.first_name)} ${prefs.getString(sph.last_name)}";
       });
-    Provider.of<BlogProvider>(context).resetComments(
-        widget.allBlogs[widget.index].postId);
+    Provider.of<BlogProvider>(context).resetComments();
   }
 
   Future getComments() async {
@@ -286,7 +322,7 @@ class _CommentModalState extends State<CommentModal> {
                   authorName: c['commentedBy'],
                   time: "${compareDate(c['dateCreated'])}");
               Provider.of<BlogProvider>(context).addComment(
-                  newComment, widget.allBlogs[widget.index].postId);
+                  newComment);
             }
           }
       }
@@ -340,8 +376,8 @@ class _CommentModalState extends State<CommentModal> {
                           height: constraints.maxHeight * 0.82,
                           child: ModalBottom(
                             scrollingList:
-                            Provider.of<BlogProvider>(context).getCommentsList(
-                                widget.allBlogs[widget.index].postId),
+                            Provider.of<BlogProvider>(context)
+                                .getCommentsList(),
                             postId: widget.allBlogs[widget.index].postId,
                             userToken: widget.userToken,
                             memberId: widget.memberId,
@@ -388,18 +424,48 @@ class _CommentModalState extends State<CommentModal> {
                               child: StatefulBuilder(
                                 builder: (cntx, _setState) {
                                   return GestureDetector(
-                                    onTap: () {
-                                      if(commentText.isNotEmpty) {
+                                    onTap: () async {
+                                      bool internet = await hasInternet();
+                                      if (commentText.isNotEmpty) {
+                                        Comment newComment = new Comment(
+                                            commentMemberId: int.parse(
+                                                widget.memberId),
+                                            temopraryId: "temporary${Provider
+                                                .of<BlogProvider>(context)
+                                                .getCommentsList()
+                                                .length + 1}",
+                                            authorImage: profileImage,
+                                            commentText: commentController.value
+                                                .text,
+                                            authorName: fullName,
+                                            time: compareDate(DateTime.now()
+                                                .toIso8601String()));
+                                        Provider.of<BlogProvider>(context)
+                                            .addComment(newComment);
+
+                                        if(internet == false) {
+                                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                                          SharedPrefHelper sph = SharedPrefHelper();
+                                          Provider.of<PendingRequestProvider>(context).addPendingComments = new PendingComment(userToken: widget.userToken, memberId: widget.memberId, createdOn: DateTime.now(), updatedOn: DateTime.now(), postId: widget
+                                              .allBlogs[widget.index].postId, tempId: "temporary${Provider
+                                              .of<BlogProvider>(context)
+                                              .getCommentsList()
+                                              .length + 1}",commentText: commentController.text,commentedBy: fullName);
+                                          sph.savePosts(sph.pendingcomment_requests, Provider.of<PendingRequestProvider>(context).pendingComments);
+                                        }
+
+                                        if(internet == true)
                                         commentOnPost(
-                                          context,
-                                          widget.userToken,
-                                          "${widget.memberId}",
-                                          postId: widget
-                                              .allBlogs[widget.index].postId,
-                                          commentText:
-                                          commentController.value.text,
-                                          createdOn: DateTime.now(),
-                                          updatedOn: DateTime.now(),
+                                            context,
+                                            widget.userToken,
+                                            "${widget.memberId}",
+                                            postId: widget
+                                                .allBlogs[widget.index].postId,
+                                            commentText:
+                                            commentController.value.text,
+                                            createdOn: DateTime.now(),
+                                            updatedOn: DateTime.now(),
+                                            tempId: newComment.temopraryId
                                         );
                                         commentController.clear();
                                         setState(() {
@@ -409,7 +475,9 @@ class _CommentModalState extends State<CommentModal> {
                                     },
                                     child: Icon(
                                       Icons.send,
-                                      color: commentText.isEmpty ? Colors.black87.withOpacity(0.4) : Colors.black87,
+                                      color: commentText.isEmpty ? Colors
+                                          .black87.withOpacity(0.4) : Colors
+                                          .black87,
                                     ),
                                   );
                                 },
@@ -428,56 +496,100 @@ class _CommentModalState extends State<CommentModal> {
   }
 }
 
-class ImagePostWidget extends StatelessWidget {
+class ImagePostWidget extends StatefulWidget {
   final List<Blog> allBlogs;
   final int index;
   final BoxConstraints constraints;
+  final String userToken;
+  final String memberId;
 
-  ImagePostWidget(this.allBlogs, this.index, this.constraints);
+  ImagePostWidget(this.allBlogs, this.index, this.constraints, this.userToken,
+      this.memberId);
+
+  @override
+  _ImagePostWidgetState createState() => _ImagePostWidgetState();
+}
+
+class _ImagePostWidgetState extends State<ImagePostWidget>
+    with AutomaticKeepAliveClientMixin {
+  bool internet;
+  Image memoryImage;
+  final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   @override
   Widget build(BuildContext context) {
+     if(widget.allBlogs[widget.index].imageBytes != null)
+    _memoizer.runOnce(() => preCacheTheImage());
     return Column(
       children: <Widget>[
         Container(
           width: double.infinity,
           margin: EdgeInsets.only(
-              top: constraints.maxHeight * 0.02,
-              bottom: constraints.maxHeight * 0.01),
+              top: widget.constraints.maxHeight * 0.02),
           padding:
-          EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.04),
-          child: Text(allBlogs[index].title,
+          EdgeInsets.symmetric(horizontal: widget.constraints.maxWidth * 0.04),
+          child: Text(widget.allBlogs[widget.index].title,
               style: TextStyle(color: Colors.black54, fontSize: 15)),
         ),
         /*if (allBlogs[index].isDonationRequired == true)
           DonationWidget(constraints, allBlogs[index].donations),*/
-        SizedBox(height: constraints.maxHeight * 0.02),
+        Padding(
+          padding: EdgeInsets.only(
+              left: widget.constraints.maxWidth * 0.035, right: 8.0),
+          child: DonateRemindBuy(
+            isEvent: false,
+            allBlogs: widget.allBlogs,
+            index: widget.index,
+            userToken: widget.userToken,
+            memberId: widget.memberId,
+            constraints: widget.constraints,),
+        ),
+        SizedBox(height: widget.constraints.maxHeight * 0.02),
         Center(
           child: GestureDetector(
             onTap: () {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (cntx) => SingleImage(allBlogs[index].image)));
+                      builder: (cntx) =>
+                          SingleImage(
+                              widget.allBlogs[widget.index].image,
+                              widget.allBlogs[widget.index].imageBytes)));
             },
             child: Container(
-              width: constraints.maxWidth * 0.9,
-              child: allBlogs[index].image == null
+              width: widget.constraints.maxWidth * 0.9,
+              child: widget.allBlogs[widget.index].image == null
                   ? Image.asset(
                 "assets/images/laptop.png",
                 fit: BoxFit.fitHeight,
               )
-                  : FadeInImage.assetNetwork(
+                  : widget.allBlogs[widget.index].imageBytes == null
+                  ? FadeInImage.assetNetwork(
                 placeholder: "assets/images/loading.gif",
-                image: allBlogs[index].image,
+                image: widget.allBlogs[widget.index].image,
                 fit: BoxFit.fill,
-              ),
+              )
+                  : memoryImage,
             ),
           ),
         ),
       ],
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> preCacheTheImage() async {
+    memoryImage = Image.memory(
+      widget.allBlogs[widget.index].imageBytes, fit: BoxFit.fill,);
+    precacheImage(memoryImage.image, context);
+  }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 class TicketBuyWidget extends StatelessWidget {
@@ -583,32 +695,58 @@ class DonationWidget extends StatelessWidget {
   }
 }
 
-class VideoPostWidget extends StatelessWidget {
+class VideoPostWidget extends StatefulWidget {
   final List<Blog> allBlogs;
   final int index;
   final BoxConstraints constraints;
+  final String userToken;
+  final String memberId;
 
-  VideoPostWidget(this.allBlogs, this.index, this.constraints);
+  VideoPostWidget(this.allBlogs, this.index, this.constraints, this.userToken,
+      this.memberId);
+
+  @override
+  _VideoPostWidgetState createState() => _VideoPostWidgetState();
+}
+
+class _VideoPostWidgetState extends State<VideoPostWidget>
+    with AutomaticKeepAliveClientMixin {
+  bool internet;
+  MemoryImage memoryImage;
+  final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   @override
   Widget build(BuildContext context) {
+    if(widget.allBlogs[widget.index].imageBytes != null)
+    _memoizer.runOnce(() => preCacheTheImage());
     return Column(
       children: <Widget>[
         Container(
           width: double.infinity,
           margin: EdgeInsets.only(
-            top: constraints.maxHeight * 0.02,
+            top: widget.constraints.maxHeight * 0.02,
           ),
           padding:
-          EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.04),
-          child: Text(allBlogs[index].title,
+          EdgeInsets.symmetric(horizontal: widget.constraints.maxWidth * 0.04),
+          child: Text(widget.allBlogs[widget.index].title,
               style: TextStyle(color: Colors.black54, fontSize: 15)),
         ),
         /*if (allBlogs[index].isDonationRequired == true)
           DonationWidget(constraints, allBlogs[index].donations),*/
-        SizedBox(height: constraints.maxHeight * 0.02),
+        Padding(
+          padding: EdgeInsets.only(
+              left: widget.constraints.maxWidth * 0.035, right: 8.0),
+          child: DonateRemindBuy(
+            isEvent: false,
+            allBlogs: widget.allBlogs,
+            index: widget.index,
+            userToken: widget.userToken,
+            memberId: widget.memberId,
+            constraints: widget.constraints,),
+        ),
+        SizedBox(height: widget.constraints.maxHeight * 0.02),
         Center(
-          child: allBlogs[index].image != null
+          child: widget.allBlogs[widget.index].image != null
               ? GestureDetector(
             onTap: () =>
                 Navigator.push(
@@ -616,14 +754,16 @@ class VideoPostWidget extends StatelessWidget {
                     MaterialPageRoute(
                         builder: (cntx) =>
                             SingleBlogPost(
-                              singleBlog: allBlogs[index],
+                              singleBlog: widget.allBlogs[widget.index],
                             ))),
             child: Container(
-              width: constraints.maxWidth * 0.9,
-              height: constraints.maxHeight * 0.4,
+              width: widget.constraints.maxWidth * 0.9,
+              height: widget.constraints.maxHeight * 0.4,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                    image: NetworkImage(allBlogs[index].image),
+                    image: widget.allBlogs[widget.index].imageBytes == null
+                        ? NetworkImage(widget.allBlogs[widget.index].image)
+                        : memoryImage,
                     fit: BoxFit.fill,
                     colorFilter: ColorFilter.mode(
                         Colors.black.withOpacity(0.4), BlendMode.darken)),
@@ -667,11 +807,25 @@ class VideoPostWidget extends StatelessWidget {
               ),
             ),
           )
-              : VideoPostAsset(constraints, allBlogs[index]),
+              : VideoPostAsset(
+              widget.constraints, widget.allBlogs[widget.index]),
         ),
       ],
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> preCacheTheImage() async {
+    memoryImage = MemoryImage(widget.allBlogs[widget.index].imageBytes);
+    precacheImage(memoryImage, context);
+  }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 class VideoPostAsset extends StatelessWidget {
@@ -720,7 +874,7 @@ class VideoPostAsset extends StatelessWidget {
   }
 }
 
-class EventImagePostWidget extends StatelessWidget {
+class EventImagePostWidget extends StatefulWidget {
   final List<Blog> allBlogs;
   final int index;
   final BoxConstraints constraints;
@@ -728,95 +882,105 @@ class EventImagePostWidget extends StatelessWidget {
   final String userToken;
   bool showButton;
   bool isSingleChannel;
+  final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   EventImagePostWidget(this.allBlogs, this.index, this.constraints,
-      this.memberId, this.userToken,{this.showButton,this.isSingleChannel});
+      this.memberId, this.userToken, {this.showButton, this.isSingleChannel});
+
+  @override
+  _EventImagePostWidgetState createState() => _EventImagePostWidgetState();
+}
+
+class _EventImagePostWidgetState extends State<EventImagePostWidget>
+    with AutomaticKeepAliveClientMixin {
+  bool internet;
+  Image memoryImage;
+  final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   @override
   Widget build(BuildContext context) {
+    if(widget.allBlogs[widget.index].imageBytes != null)
+    _memoizer.runOnce(() => preCacheTheImage());
     return Column(
       children: <Widget>[
         Container(
           width: double.infinity,
           margin: EdgeInsets.only(
-              top: constraints.maxHeight * 0.02,
-              bottom: constraints.maxHeight * 0.01),
+              top: widget.constraints.maxHeight * 0.02,
+              bottom: widget.constraints.maxHeight * 0.01),
           padding:
-          EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.04),
+          EdgeInsets.symmetric(horizontal: widget.constraints.maxWidth * 0.04),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(allBlogs[index].title,
+              Text(widget.allBlogs[widget.index].title,
                   style: TextStyle(color: Colors.red, fontSize: 15)),
               SizedBox(
-                height: constraints.maxHeight * 0.01,
+                height: widget.constraints.maxHeight * 0.01,
               ),
-              if (allBlogs[index].eventLocation != null)
-                buildIconText(context, allBlogs[index].eventLocation,
+              if (widget.allBlogs[widget.index].eventLocation != null)
+                buildIconText(
+                    context, widget.allBlogs[widget.index].eventLocation,
                     Icons.location_on, 3.0, Colors.black54),
               SizedBox(
-                height: constraints.maxHeight * 0.01,
+                height: widget.constraints.maxHeight * 0.005,
               ),
-              if (allBlogs[index].eventTime != null)
-                buildIconText(context, allBlogs[index].eventTime,
+              if (widget.allBlogs[widget.index].eventTime != null)
+                buildIconText(context, widget.allBlogs[widget.index].eventTime,
                     Icons.watch_later, 3.0, Colors.black54),
-              if(showButton != false && allBlogs[index].isPast != true && isSingleChannel != true)
-              Container(
-                margin: EdgeInsets.only(
-                    top: constraints.maxHeight * 0.03,left: constraints.maxWidth * 0.007),
-                padding: EdgeInsets.all(4.0),
-                color: Colors.red,
-                width: constraints.maxWidth * 0.27,
-                child: buildIconText(
-                    context, "Remind Me", Icons.notifications, 3.0,
-                    Colors.white, onTap: () {
-                  showModalBottomSheet(context: context,
-                      builder: (cntx) =>
-                          EventFollowModal(constraints,
-                              allBlogs[index].eventId, int.parse(memberId),
-                              userToken));
-                }),
-              ),
+              DonateRemindBuy(
+                isEvent: false,
+                allBlogs: widget.allBlogs,
+                index: widget.index,
+                userToken: widget.userToken,
+                memberId: widget.memberId,
+                constraints: widget.constraints,),
             ],
           ),
         ),
-        /*Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            if (allBlogs[index].isDonationRequired == true)
-              DonationWidget(constraints, allBlogs[index].donations),
-            Spacer(),
-            if (allBlogs[index].isTicketAvailable == true)
-              Padding(
-                padding: EdgeInsets.only(
-                    left: 0.0),
-                child: TicketBuyWidget(constraints),
-              ),
-          ],
-        ),*/
-        SizedBox(height: constraints.maxHeight * 0.02),
-        if (allBlogs[index].image != null)
+        SizedBox(height: widget.constraints.maxHeight * 0.02),
+        if (widget.allBlogs[widget.index].image != null)
           Center(
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (cntx) => SingleImage(allBlogs[index].image)));
+                        builder: (cntx) =>
+                            SingleImage(
+                                widget.allBlogs[widget.index].image,
+                                widget.allBlogs[widget.index].imageBytes)));
               },
               child: Container(
-                width: constraints.maxWidth * 0.9,
-                child: FadeInImage.assetNetwork(
+                width: widget.constraints.maxWidth * 0.9,
+                child: widget.allBlogs[widget.index].imageBytes == null
+                    ? FadeInImage.assetNetwork(
                   placeholder: "assets/images/loading.gif",
-                  image: allBlogs[index].image,
+                  image: widget.allBlogs[widget.index].image,
                   fit: BoxFit.fill,
-                ),
+                )
+                    : memoryImage,
               ),
             ),
           ),
       ],
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> preCacheTheImage() async {
+    memoryImage = Image.memory(
+      widget.allBlogs[widget.index].imageBytes, fit: BoxFit.fill,);
+    precacheImage(memoryImage.image, context);
+  }
+
+  @override
+  // TODO: implement wantKeepAlive
+  bool get wantKeepAlive => true;
 }
 
 class EventFollowModal extends StatelessWidget {
@@ -832,13 +996,14 @@ class EventFollowModal extends StatelessWidget {
   bool reminder3 = false;
 
 
-  EventFollowModal(this.constraints,this.eventId, this.memberId, this.userToken);
+  EventFollowModal(this.constraints, this.eventId, this.memberId,
+      this.userToken);
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(10.0),
-      child: StatefulBuilder(builder: (context,_setState){
+      child: StatefulBuilder(builder: (context, _setState) {
         return Column(
           children: <Widget>[
             CheckboxListTile(value: reminder1,
@@ -869,22 +1034,31 @@ class EventFollowModal extends StatelessWidget {
                   });
                 }),
             Align(alignment: Alignment.bottomRight,
-              child: Container(decoration: BoxDecoration(color: reminder1 || reminder2 || reminder3 ? Colors.red : Colors.red.withOpacity(0.4),
+              child: Container(decoration: BoxDecoration(
+                  color: reminder1 || reminder2 || reminder3
+                      ? Colors.red
+                      : Colors.red.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(25)),
                 margin: EdgeInsets.only(top: 16.0),
                 width: constraints.maxWidth * 0.2,
                 child: GestureDetector(
                   onTap: () {
-                    if(reminder1 || reminder2 || reminder3) {
-                      addEventFollow(context,eventId,memberId,userToken,reminder1: reminder1,reminder2: reminder2,reminder3: reminder3).then((_) {
+                    if (reminder1 || reminder2 || reminder3) {
+                      addEventFollow(context, eventId, memberId, userToken,
+                          reminder1: reminder1,
+                          reminder2: reminder2,
+                          reminder3: reminder3).then((_) {
                         Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (cntx) => EventsFollowed()));
+                        Navigator.push(context, MaterialPageRoute(
+                            builder: (cntx) => EventsFollowed()));
                       });
                     }
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6.0,horizontal: 8.0),
-                    child: Center(child: Text("Done", style: TextStyle(color: Colors.white),)),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 6.0, horizontal: 8.0),
+                    child: Center(child: Text("Done", style: TextStyle(
+                        color: Colors.white),)),
                   ),
                 ),),),
           ],
@@ -896,15 +1070,30 @@ class EventFollowModal extends StatelessWidget {
 
 }
 
-class EventVideoPostWidget extends StatelessWidget {
+class EventVideoPostWidget extends StatefulWidget {
   final List<Blog> allBlogs;
   final int index;
   final BoxConstraints constraints;
+  final String userToken;
+  final String memberId;
 
-  EventVideoPostWidget(this.allBlogs, this.index, this.constraints);
+  EventVideoPostWidget(this.allBlogs, this.index, this.constraints,
+      this.userToken, this.memberId);
+
+  @override
+  _EventVideoPostWidgetState createState() => _EventVideoPostWidgetState();
+}
+
+class _EventVideoPostWidgetState extends State<EventVideoPostWidget>
+    with AutomaticKeepAliveClientMixin {
+  bool internet;
+  MemoryImage memoryImage;
+  final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   @override
   Widget build(BuildContext context) {
+    if(widget.allBlogs[widget.index].imageBytes != null)
+    _memoizer.runOnce(() => preCacheTheImage());
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -912,7 +1101,7 @@ class EventVideoPostWidget extends StatelessWidget {
             MaterialPageRoute(
                 builder: (cntx) =>
                     SingleBlogPost(
-                      singleBlog: allBlogs[index],
+                      singleBlog: widget.allBlogs[widget.index],
                     )));
       },
       child: Column(
@@ -920,58 +1109,52 @@ class EventVideoPostWidget extends StatelessWidget {
           Container(
             width: double.infinity,
             margin: EdgeInsets.only(
-                top: constraints.maxHeight * 0.02,
-                bottom: constraints.maxHeight * 0.02),
+                top: widget.constraints.maxHeight * 0.02,
+                bottom: widget.constraints.maxHeight * 0.02),
             padding:
-            EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.04),
+            EdgeInsets.symmetric(
+                horizontal: widget.constraints.maxWidth * 0.04),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(allBlogs[index].title,
+                Text(widget.allBlogs[widget.index].title,
                     style: TextStyle(color: Colors.red, fontSize: 15)),
-                if (allBlogs[index].eventLocation != null)
+                if (widget.allBlogs[widget.index].eventLocation != null)
                   SizedBox(
-                    height: constraints.maxHeight * 0.01,
+                    height: widget.constraints.maxHeight * 0.01,
                   ),
-                buildIconText(context, allBlogs[index].eventLocation,
+                buildIconText(
+                    context, widget.allBlogs[widget.index].eventLocation,
                     Icons.location_on, 3.0, Colors.black54),
                 SizedBox(
-                  height: constraints.maxHeight * 0.01,
+                  height: widget.constraints.maxHeight * 0.01,
                 ),
-                if (allBlogs[index].eventTime != null)
-                  buildIconText(context, allBlogs[index].eventTime,
+                if (widget.allBlogs[widget.index].eventTime != null)
+                  buildIconText(
+                      context, widget.allBlogs[widget.index].eventTime,
                       Icons.watch_later, 3.0, Colors.black54),
-                /*Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: <Widget>[
-                      if (allBlogs[index].isDonationRequired == true)
-                      DonationWidget(
-                        constraints,
-                        allBlogs[index].donations,
-                        isEventVideo: 1,
-                      ),
-                      Spacer(),
-                      if (allBlogs[index].isTicketAvailable == true)
-                        Padding(
-                          padding: EdgeInsets.only(
-                              left: 0),
-                          child: TicketBuyWidget(constraints),
-                        ),
-                    ],
-                  ),*/
+                DonateRemindBuy(
+                  isEvent: true,
+                  allBlogs: widget.allBlogs,
+                  index: widget.index,
+                  userToken: widget.userToken,
+                  memberId: widget.memberId,
+                  constraints: widget.constraints,),
               ],
             ),
           ),
-          SizedBox(height: constraints.maxHeight * 0.01),
+          SizedBox(height: widget.constraints.maxHeight * 0.01),
           Center(
             child: Container(
-              width: constraints.maxWidth * 0.9,
-              height: constraints.maxHeight * 0.4,
+              width: widget.constraints.maxWidth * 0.9,
+              height: widget.constraints.maxHeight * 0.4,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: allBlogs[index].image == null
+                  image: widget.allBlogs[widget.index].image == null
                       ? AssetImage("assets/images/laptop.png")
-                      : NetworkImage(allBlogs[index].image),
+                      : widget.allBlogs[widget.index].imageBytes == null
+                      ? NetworkImage(widget.allBlogs[widget.index].image)
+                      : memoryImage,
                   fit: BoxFit.fill,
                 ),
               ),
@@ -983,8 +1166,8 @@ class EventVideoPostWidget extends StatelessWidget {
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(50)),
                   child: Container(
-                    width: constraints.maxWidth * 0.16,
-                    height: constraints.maxHeight * 0.05,
+                    width: widget.constraints.maxWidth * 0.16,
+                    height: widget.constraints.maxHeight * 0.05,
                     padding: const EdgeInsets.all(4.0),
                     child: Row(
                       children: <Widget>[
@@ -1008,6 +1191,125 @@ class EventVideoPostWidget extends StatelessWidget {
       ),
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> preCacheTheImage() async {
+    memoryImage = MemoryImage(widget.allBlogs[widget.index].imageBytes);
+    precacheImage(memoryImage, context);
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+}
+
+
+class DonateRemindBuy extends StatelessWidget {
+  final List<Blog> allBlogs;
+  final int index;
+  BoxConstraints constraints;
+  String userToken;
+  String memberId;
+  bool isEvent;
+
+  DonateRemindBuy(
+      {this.isEvent, this.allBlogs, this.index, this.constraints, this.userToken, this.memberId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        if(allBlogs[index].isPast != true && isEvent == true)
+          Container(
+            margin: EdgeInsets.only(
+                top: constraints.maxHeight * 0.03,
+                left: constraints.maxWidth * 0.007),
+            padding: EdgeInsets.all(4.0),
+            color: Colors.red,
+            width: constraints.maxWidth * 0.27,
+            child: buildIconText(
+                context, "Remind Me", Icons.notifications, 3.0,
+                Colors.white, onTap: () {
+              showModalBottomSheet(context: context,
+                  builder: (cntx) =>
+                      EventFollowModal(constraints,
+                          allBlogs[index].eventId, int.parse(memberId),
+                          userToken));
+            }),
+          ),
+        if(allBlogs[index].isPast != true && isEvent == true)
+          Spacer(),
+        if (allBlogs[index].isDonationRequired == true)
+          Container(
+            margin: EdgeInsets.only(
+                top: constraints.maxHeight * 0.03,
+                left: constraints.maxWidth * 0.007),
+            padding: EdgeInsets.all(4.0),
+            color: Colors.red,
+            width: constraints.maxWidth * 0.22,
+            child: buildIconText(
+                context, "Donate", Icons.monetization_on, 3.0,
+                Colors.white, onTap: () {
+              allBlogs[index].donations.length == 0
+                  ? showModalBottomSheet(
+                  context: context,
+                  isDismissible: false,
+                  builder: (cntx) => DonationModalSingle())
+                  : showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  isDismissible: false,
+                  builder: (cntx) =>
+                      Container(
+                        height: MediaQuery
+                            .of(context)
+                            .size
+                            .height * 0.6,
+                        child: DonationModal(
+                            allBlogs[index].donations),
+                      ));
+            }),
+          ),
+        if(allBlogs[index].isPast != true && isEvent == true ||
+            allBlogs[index].isDonationRequired == true &&
+                allBlogs[index].isTicketAvailable ==
+                    true)
+          Spacer(),
+        if (allBlogs[index].isTicketAvailable ==
+            true /* && widget.allBlogs[widget.index].isPast != true */)
+          Container(
+            margin: EdgeInsets.only(
+                top: constraints.maxHeight * 0.03,
+                left: constraints.maxWidth * 0.007),
+            padding: EdgeInsets.all(4.0),
+            color: Colors.red,
+            width: constraints.maxWidth * 0.27,
+            child: buildIconText(
+                context, "Buy Tickets", Icons.loyalty, 3.0,
+                Colors.white, onTap: () {
+              showModalBottomSheet(
+                  context: context,
+                  isDismissible: false,
+                  isScrollControlled: true,
+                  builder: (cntx) =>
+                      Container(
+                          height: MediaQuery
+                              .of(context)
+                              .size
+                              .height * 0.7,
+                          margin: EdgeInsets.only(top: 20),
+                          child: BuyTicketsUI(
+                              userToken,
+                              allBlogs[index])));
+            }),
+          ),
+      ],
+    );
+  }
+
 }
 
 class DonationModalSingle extends StatefulWidget {
@@ -1064,6 +1366,7 @@ class _DonationModalSingleState extends State<DonationModalSingle> {
                             Navigator.pop(context);
                             showModalBottomSheet(
                                 context: context,
+                                isDismissible: false,
                                 builder: (cntx) =>
                                     PaymentMehodModal(
                                         double.parse(amountController.text)));
@@ -1112,61 +1415,71 @@ class _DonationModalState extends State<DonationModal> {
         builder: (cntx, constraints) {
           return Stack(
             children: <Widget>[
-              Container(
-                width: double.infinity,
-                height: constraints.maxHeight * 0.8,
-                child: ListView.builder(
-                    itemCount: widget.donationsList.length + 1,
-                    itemBuilder: (cntx, index) {
-                      return StatefulBuilder(
-                        builder: (cntx, _setState) {
-                          return index != widget.donationsList.length
-                              ? RadioListTile(
-                            activeColor: Colors.red,
-                            groupValue: amount,
-                            value: double.parse(
-                              widget.donationsList[index].denomAmount,
-                            ),
-                            title: Text(
-                                "\$${widget.donationsList[index].denomAmount}",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            subtitle: Text(
-                                "${widget.donationsList[index]
-                                    .denomDescription}"),
-                            onChanged: handleRadioChange,
-                          )
-                              : RadioListTile(
-                            activeColor: Colors.red,
-                            groupValue: amount,
-                            value: amountController.text == ""
-                                ? 0.0
-                                : double.parse(amountController.text),
-                            title: TextField(
-                              controller: amountController,
-                              inputFormatters: [
-                                WhitelistingTextInputFormatter.digitsOnly,
-                              ],
-                              keyboardType:
-                              TextInputType.numberWithOptions(
-                                  decimal: false, signed: false),
-                              decoration: InputDecoration(
-                                contentPadding:
-                                EdgeInsets.only(left: 10, right: 10),
-                                labelText: "Enter Amount Here",
-                                labelStyle:
-                                TextStyle(color: Color(0xFAC9CAD1)),
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(
-                                      color: Color(0xFFEBEAEF)),
+              ListView(
+                children: <Widget>[
+                  Align(alignment: Alignment.topRight,
+                    child: IconButton(
+                      icon: Icon(Icons.clear, size: 15), onPressed: () {
+                      Navigator.pop(context);
+                    },),),
+                  Container(
+                    width: double.infinity,
+                    height: constraints.maxHeight * 0.8,
+                    child: ListView.builder(
+                        itemCount: widget.donationsList.length + 1,
+                        itemBuilder: (cntx, index) {
+                          return StatefulBuilder(
+                            builder: (cntx, _setState) {
+                              return index != widget.donationsList.length
+                                  ? RadioListTile(
+                                activeColor: Colors.red,
+                                groupValue: amount,
+                                value: double.parse(
+                                  widget.donationsList[index].denomAmount,
                                 ),
-                              ),
-                            ),
-                            onChanged: handleRadioChange,
+                                title: Text(
+                                    "\$${widget.donationsList[index]
+                                        .denomAmount}",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                                subtitle: Text(
+                                    "${widget.donationsList[index]
+                                        .denomDescription}"),
+                                onChanged: handleRadioChange,
+                              )
+                                  : RadioListTile(
+                                activeColor: Colors.red,
+                                groupValue: amount,
+                                value: amountController.text == ""
+                                    ? 0.0
+                                    : double.parse(amountController.text),
+                                title: TextField(
+                                  controller: amountController,
+                                  inputFormatters: [
+                                    WhitelistingTextInputFormatter.digitsOnly,
+                                  ],
+                                  keyboardType:
+                                  TextInputType.numberWithOptions(
+                                      decimal: false, signed: false),
+                                  decoration: InputDecoration(
+                                    contentPadding:
+                                    EdgeInsets.only(left: 10, right: 10),
+                                    labelText: "Enter Amount Here",
+                                    labelStyle:
+                                    TextStyle(color: Color(0xFAC9CAD1)),
+                                    enabledBorder: UnderlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Color(0xFFEBEAEF)),
+                                    ),
+                                  ),
+                                ),
+                                onChanged: handleRadioChange,
+                              );
+                            },
                           );
-                        },
-                      );
-                    }),
+                        }),
+                  ),
+                ],
               ),
               Align(
                 alignment: Alignment.bottomRight,
@@ -1176,6 +1489,7 @@ class _DonationModalState extends State<DonationModal> {
                       Navigator.pop(context);
                       showModalBottomSheet(
                           context: context,
+                          isDismissible: false,
                           builder: (cntx) => PaymentMehodModal(amount));
                     }
                   },
@@ -1235,31 +1549,40 @@ class _PaymentMehodModalState extends State<PaymentMehodModal> {
         builder: (cntx, constraints) {
           return Stack(
             children: <Widget>[
-              Container(
-                margin: EdgeInsets.symmetric(vertical: 10),
-                width: double.infinity,
-                child: RadioListTile(
-                  activeColor: Colors.red,
-                  onChanged: handleRadioChange,
-                  groupValue: method,
-                  value: 1,
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: <Widget>[
-                      Icon(
-                        Icons.credit_card,
-                        color: Colors.red,
+              ListView(
+                children: <Widget>[
+                  Align(alignment: Alignment.topRight,
+                    child: IconButton(
+                      icon: Icon(Icons.clear, size: 15,), onPressed: () {
+                      Navigator.pop(context);
+                    },),),
+                  Container(
+                    margin: EdgeInsets.symmetric(vertical: 5),
+                    width: double.infinity,
+                    child: RadioListTile(
+                      activeColor: Colors.red,
+                      onChanged: handleRadioChange,
+                      groupValue: method,
+                      value: 1,
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: <Widget>[
+                          Icon(
+                            Icons.credit_card,
+                            color: Colors.red,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4.0),
+                            child: Text(
+                              "Pay With Paypal",
+                              style: TextStyle(color: Colors.black87),
+                            ),
+                          )
+                        ],
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          "Pay With Paypal",
-                          style: TextStyle(color: Colors.black87),
-                        ),
-                      )
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
               Align(
                 alignment: Alignment.bottomRight,
@@ -1269,6 +1592,7 @@ class _PaymentMehodModalState extends State<PaymentMehodModal> {
                       Navigator.pop(context);
                       showModalBottomSheet(
                           isScrollControlled: true,
+                          isDismissible: false,
                           context: context,
                           builder: (cntxs) =>
                               Container(height: MediaQuery
@@ -1331,7 +1655,6 @@ class _PaypalDetailsState extends State<PaypalDetails> {
   String cvvText = "";
 
 
-
   @override
   Widget build(BuildContext context) {
     /* ------------------- Validations -------------------- */
@@ -1377,9 +1700,14 @@ class _PaypalDetailsState extends State<PaypalDetails> {
               .bottom),
           child: Stack(
             children: <Widget>[
+              Align(alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: Icon(Icons.clear, size: 15), onPressed: () {
+                  Navigator.pop(context);
+                },),),
               Container(
                 padding: EdgeInsets.symmetric(
-                    vertical: constraints.maxHeight * 0.07, horizontal: 8.0),
+                    vertical: constraints.maxHeight * 0.085, horizontal: 8.0),
                 child: ListView(
                   children: <Widget>[
                     Row(
@@ -1550,7 +1878,7 @@ class DetailsTextField extends StatelessWidget {
   Function onChange;
 
   DetailsTextField(
-      {this.labelText, this.icon, this.controller, this.inputList,this.onChange});
+      {this.labelText, this.icon, this.controller, this.inputList, this.onChange});
 
   @override
   Widget build(BuildContext context) {
@@ -1612,7 +1940,7 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
                 discountPrice = double.parse(
                     snapshots.data['data']['ticketDiscount'].toString());
                 remainingTickets =
-                snapshots.data['data']['remainingTickets'] - Quantity;
+                    snapshots.data['data']['remainingTickets'] - Quantity;
                 total = (price * Quantity).toInt();
                 payable = total - discount;
               }
@@ -1644,17 +1972,27 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Container(
-                            width: double.infinity,
-                            child: buildTextWithIcon(
-                                context,
-                                Icons.shopping_cart,
-                                "Buy Tickets",
-                                6.0,
-                                Colors.black87)),
+                          width: double.infinity,
+                          child: Row(
+                            children: <Widget>[
+                              buildTextWithIcon(
+                                  context,
+                                  Icons.shopping_cart,
+                                  "Buy Tickets",
+                                  6.0,
+                                  Colors.black87),
+                              Spacer(),
+                              IconButton(icon: Icon(Icons.clear, size: 15),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },)
+                            ],
+                          ),
+                        ),
                         Container(
                           width: double.infinity,
                           margin: EdgeInsets.only(
-                              top: constraints.maxHeight * 0.06,
+                              top: constraints.maxHeight * 0.03,
                               left: constraints.maxWidth * 0.03),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1691,7 +2029,8 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
                                 child: double.parse(snapshots.data['data']
                                 ['ticketsLimitPerPerson']
                                     .toString()) <=
-                                    4 || snapshots.data['data']['remainingTickets'] <= 4
+                                    4 || snapshots
+                                    .data['data']['remainingTickets'] <= 4
                                     ? Container(
                                   width: constraints.maxWidth * 0.7,
                                   child: Row(
@@ -1724,9 +2063,16 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
                                   ),
                                 )
                                     : SliderTheme(
-                                  data: Theme
-                                      .of(context)
-                                      .sliderTheme,
+                                  data: SliderTheme.of(context).copyWith(
+                                    inactiveTrackColor: Colors.grey,
+                                    thumbColor: Colors.white,
+                                    activeTrackColor: Colors.white,
+                                    overlayColor: Colors.white,
+                                    thumbShape: RoundSliderThumbShape(
+                                        enabledThumbRadius: 7.0),
+                                    overlayShape: RoundSliderOverlayShape(
+                                        overlayRadius: 15.0),
+                                  ),
                                   child: Slider(
                                     activeColor: Colors.red,
                                     inactiveColor: Colors.grey,
@@ -1796,6 +2142,7 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
                                         Navigator.pop(context);
                                         showModalBottomSheet(
                                             context: context,
+                                            isDismissible: false,
                                             builder: (cntx) =>
                                                 PaymentMehodModal(double.parse(
                                                     payable.toString())));

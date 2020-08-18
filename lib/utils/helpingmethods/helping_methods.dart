@@ -1,13 +1,19 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/channel.dart';
 import 'package:faithstream/model/comment.dart';
+import 'package:faithstream/model/donation.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 String compareDate(String dateToCompare) {
@@ -39,7 +45,7 @@ String compareDate(String dateToCompare) {
 
 Future<void> likePost(BuildContext context, String userToken, String memberId,
     DateTime createdOn, DateTime updatedOn, Function onSuccess,
-    Blog blog) async {
+    String postId) async {
   final response = await http.post(
     "http://api.faithstreams.net/api/Post/LikePost",
     headers: <String, String>{
@@ -47,7 +53,7 @@ Future<void> likePost(BuildContext context, String userToken, String memberId,
       "Authorization": "Bearer $userToken"
     },
     body: jsonEncode(<String, String>{
-      'postID': blog.postId,
+      'postID': postId,
       'createdOn': createdOn.toIso8601String(),
       'memberID': memberId,
       'updateOn': updatedOn.toIso8601String()
@@ -63,8 +69,6 @@ Future<void> likePost(BuildContext context, String userToken, String memberId,
     }
     return true;
   } else {
-    buildSnackBar(context, "Server is Busy,try again later");
-    print("error");
   }
 }
 
@@ -84,6 +88,8 @@ Future<void> subscribeChannel(BuildContext context, String userToken, String mem
   if (response.statusCode == 200) {
     if (json.decode(response.body)['status'] == "success") {
       print("successful");
+      if(channel.status == 2)
+      getSubscribedChannelVideos(context, userToken, memberId, channel);
     } else {
       print("unsuccessful");
       buildSnackBar(context, "Server is Busy,try again later");
@@ -94,6 +100,151 @@ Future<void> subscribeChannel(BuildContext context, String userToken, String mem
     print("error");
   }
 }
+
+Future<void> getSubscribedChannelVideos(BuildContext context,String userToken,String memberId,Channel channel) async {
+  var channelData = await http.get(
+      "http://api.faithstreams.net/api/Post/GetPostsByChannelID/${channel.id}",
+      headers: {"Authorization": "Bearer $userToken"});
+
+  var isFavouriteData = await http.get(
+      "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
+      headers: {"Authorization": "Bearer $userToken"});
+
+  if (channelData.body.isNotEmpty) {
+    var channelDataJson = json.decode(channelData.body);
+    if (channelDataJson['data'] != null) {
+      for (var u in channelDataJson['data']) {
+        if (channelDataJson['data'] == []) continue;
+
+        var postData = u;
+
+        Blog newBlog = new Blog(
+            postId: null,
+            postType: null,
+            videoUrl: null,
+            image: null,
+            title: null,
+            author: null,
+            authorImage: null,
+            date: null,
+            time: null,
+            likes: null,
+            views: null,
+            subscribers: null);
+
+        List<Donation> donnations = [];
+
+        if (u['denom'] != null) {
+          if (u['denom'] != [])
+            for (var d in u['denom']) {
+              Donation newDonation = new Donation(id: d['id'].toString(),
+                  channelId: d['channelID'].toString(),
+                  denomAmount: d['denomAmount'],
+                  denomDescription: d['denomDescription']);
+              donnations.add(newDonation);
+            }
+        }
+
+        if (u['postType'] == "Event")
+          newBlog = new Blog(
+              postId: postData['id'],
+              postType: postData['postType'],
+              videoUrl: postData['event']['video'] != null
+                  ? postData['event']['video']['url']
+                  : postData['event']['video'],
+              image: postData['event']['image'],
+              title: postData['title'],
+              authorId: postData['authorID'],
+              author: postData['authorName'],
+              authorImage: postData['authorImage'],
+              date: postData['dateCreated'],
+              time: "${compareDate(postData['dateCreated'])} ago",
+              likes: "${postData['likesCount']}",
+              views: postData['event']['video'] != null
+                  ? "${postData['event']['video']['numOfViews']}"
+                  : null,
+              subscribers: "${postData['numOfSubscribers']}",
+              eventId: postData['event']['id'],
+              eventLocation: postData['event']['location'],
+              eventTime:
+              "${DateFormat.jm().format(DateTime.parse(
+                  postData['event']['startTime']))} | ${DateFormat.jm()
+                  .format(DateTime.parse(
+                  postData['event']['endTime']))} , ${DateFormat.MMMd()
+                  .format(
+                  DateTime.parse(postData['event']['postSchedule']))}",
+              isDonationRequired: postData['isDonationRequire'],
+              donations: donnations,
+              isTicketAvailable: postData['event']['isTicketPurchaseRequired'],
+              isPast: postData['event']['isPast']
+          );
+        if (u['postType'] == "Video")
+          newBlog = new Blog(
+              postId: postData['id'],
+              postType: postData['postType'],
+              videoUrl: postData['video']['url'],
+              image: postData['video']['thumbnail'],
+              title: postData['title'],
+              authorId: postData['authorID'],
+              author: postData['authorName'],
+              authorImage: postData['authorImage'],
+              date: postData['dateCreated'],
+              time: "${compareDate(postData['dateCreated'])} ago",
+              likes: "${postData['video']['numOfLikes']}",
+              views: "${postData['video']['numOfViews']}",
+              subscribers: "${postData['numOfSubscribers']}",
+              videoDuration: "",
+              donations: donnations,
+              isDonationRequired: postData['isDonationRequire'],
+              isPaidVideo: postData['video']['isPaidContent'],
+              isPurchased: postData['video']['isPurchased'],
+              videoPrice: postData['video']['price'] == null ? null : double
+                  .parse(postData['video']['price']),
+              freeVideoLength: postData['video']['freeVideoLength']);
+
+        if (u['postType'] == "Image")
+          newBlog = new Blog(
+            postId: postData['id'],
+            postType: postData['postType'],
+            videoUrl: null,
+            image: postData['image']['url'],
+            title: postData['title'],
+            authorId: postData['authorID'],
+            author: postData['authorName'],
+            authorImage: postData['authorImage'],
+            date: postData['dateCreated'],
+            time: "${compareDate(postData['dateCreated'])} ago",
+            likes: "${postData['likesCount']}",
+            views: null,
+            subscribers: "${postData['numOfSubscribers']}",
+            isDonationRequired: postData['isDonationRequire'],
+            donations: donnations,
+          );
+
+        var isFavouritejsonData = jsonDecode(isFavouriteData.body);
+        if (isFavouriteData.body.isNotEmpty)
+          if (isFavouritejsonData['data'] != null)
+            for (var fv in isFavouritejsonData['data']) {
+              if (fv['id'] == postData['id']) {
+                newBlog.setIsFavourite = 1;
+              }
+            }
+
+        if (u['postLikes'] != [])
+          for (var il in u['postLikes']) {
+            if (il['memberID'] == memberId) {
+              newBlog.setIsLiked = 1;
+            }
+          }
+        Provider
+            .of<BlogProvider>(context)
+            .addBlog = newBlog;
+      }
+      Provider.of<BlogProvider>(context).sortBlog();
+    }
+  }
+}
+
 
 Future<void> unSubscribeChannel(BuildContext context, String userToken, String memberId, Channel channel) async {
   final response = await http.post(
@@ -111,6 +262,7 @@ Future<void> unSubscribeChannel(BuildContext context, String userToken, String m
   if (response.statusCode == 200) {
     if (json.decode(response.body)['status'] == "success") {
       print("successful");
+      Provider.of<BlogProvider>(context).removeUnscribedChannelPosts(channel.id);
     } else {
       print("unsuccessful");
       buildSnackBar(context, response.body.toString());
@@ -124,7 +276,7 @@ Future<void> unSubscribeChannel(BuildContext context, String userToken, String m
 
 Future<void> commentOnPost(BuildContext context, String userToken,
     String memberId,
-    {String postId, String commentText, String commentBy, DateTime createdOn, DateTime updatedOn}) async {
+    {String postId, String commentText, String commentBy, DateTime createdOn, DateTime updatedOn,String tempId}) async {
   var userData = await http.get(
       "http://api.faithstreams.net/api/Member/GetMemberProfile/$memberId",
       headers: {"Authorization": "Bearer $userToken"});
@@ -154,18 +306,10 @@ Future<void> commentOnPost(BuildContext context, String userToken,
     if (json.decode(response.body)['data'] != null) {
       if(commentData.body.isNotEmpty) {
         var commentDataJson = jsonDecode(commentData.body);
-      var singlecomment = commentDataJson['data'][Provider.of<BlogProvider>(context).getCommentsList(postId).length];
-        Comment newComment = new Comment(
-            commentId: singlecomment['id'],
-            commentMemberId: singlecomment['memberID'],
-            authorImage: json.decode(userData.body)['data']
-            ['profileImage'],
-            commentText: singlecomment['commentText'],
-            authorName: singlecomment['commentedBy'],
-            time: compareDate(DateTime.now().toIso8601String()));
-        Provider.of<BlogProvider>(context).addComment(newComment, postId);
+      var singlecomment = commentDataJson['data'][Provider.of<BlogProvider>(context).getCommentIndexByTempId(tempId)];
+        Provider.of<BlogProvider>(context).setCommentId(tempId, singlecomment['id']);
+        Provider.of<BlogProvider>(context).resetTempId(tempId);
       }
-
     } else {
       print("unsuccessful");
     }
@@ -192,7 +336,7 @@ Future<void> deleteComment(BuildContext context, String postId, String commentId
   if (response.statusCode == 200) {
     if (json.decode(response.body)['data'] != null) {
       print("successful");
-      Provider.of<BlogProvider>(context).removeComment(postId, commentId);
+      Provider.of<BlogProvider>(context).removeComment(commentId);
     } else {
       print(json.decode(response.body).toString());
     }
@@ -205,7 +349,7 @@ Future<void> deleteComment(BuildContext context, String postId, String commentId
 
 Future<void> commentOnVideoPost(BuildContext context, String userToken,
     String memberId,
-    {String videoId, String commentText, String commentBy, DateTime createdOn, DateTime updatedOn}) async {
+    {String videoId, String commentText, String commentBy, DateTime createdOn, DateTime updatedOn,String tempId}) async {
   var userData = await http.get(
       "http://api.faithstreams.net/api/Member/GetMemberProfile/$memberId",
       headers: {"Authorization": "Bearer $userToken"});
@@ -236,15 +380,8 @@ Future<void> commentOnVideoPost(BuildContext context, String userToken,
       if(commentData.body.isNotEmpty) {
         var commentDataJson = jsonDecode(commentData.body);
         var singlecomment = commentDataJson['data'][0];
-        Comment newComment = new Comment(
-            commentId: singlecomment['id'],
-            commentMemberId: singlecomment['authorID'],
-            authorImage: json.decode(userData.body)['data']
-            ['profileImage'],
-            commentText: singlecomment['commentText'],
-            authorName: singlecomment['commentedBy'],
-            time: compareDate(DateTime.now().toIso8601String()));
-        Provider.of<BlogProvider>(context).addTPostComment(newComment, videoId);
+        Provider.of<BlogProvider>(context).setTrendingCommentId(tempId, singlecomment['id']);
+        Provider.of<BlogProvider>(context).resetTrendingTempId(tempId);
       }
 
     } else {
@@ -273,7 +410,7 @@ Future<void> deleteVideoComment(BuildContext context, String videoId, String com
   if (response.statusCode == 200) {
     if (json.decode(response.body)['data'] != null) {
       print("successful");
-      Provider.of<BlogProvider>(context).removeTPostComment(videoId, commentId);
+      Provider.of<BlogProvider>(context).removeTPostComment(commentId);
     } else {
       print(json.decode(response.body).toString());
     }
@@ -317,7 +454,7 @@ Future<void> updateUserInfo(BuildContext context, String userToken,String userId
   }
 }
 
-Future<void> addToFavourite(BuildContext context, String userToken, String memberId, Blog blog) async {
+Future<void> addToFavourite(BuildContext context, String userToken, String memberId, String postId) async {
   final response = await http.post(
     "http://api.faithstreams.net/api/Member/SaveFavoriteContent",
     headers: <String, String>{
@@ -326,8 +463,7 @@ Future<void> addToFavourite(BuildContext context, String userToken, String membe
     },
     body: jsonEncode(<String, dynamic>{
       'memberID': int.parse(memberId),
-      'contentID': blog.postId,
-      'contentType': blog.postType
+      'contentID': postId
     }),
   );
 
@@ -345,7 +481,7 @@ Future<void> addToFavourite(BuildContext context, String userToken, String membe
   }
 }
 
-Future<void> removeFromFavourite(BuildContext context, String userToken, String memberId, Blog blog) async {
+Future<void> removeFromFavourite(BuildContext context, String userToken, String memberId, String postId) async {
   final response = await http.post(
     "http://api.faithstreams.net/api/Member/RemoveFavoriteContent",
     headers: <String, String>{
@@ -354,8 +490,7 @@ Future<void> removeFromFavourite(BuildContext context, String userToken, String 
     },
     body: jsonEncode(<String, dynamic>{
       'memberID': int.parse(memberId),
-      'contentID': blog.postId,
-      'contentType': blog.postType
+      'contentID': postId
     }),
   );
   if (response.statusCode == 200) {
@@ -398,4 +533,60 @@ Future<void> addEventFollow(BuildContext context, int eventId, int memberId,Stri
     print(jsonDecode(response.body).toString());
     print("error");
   }
+}
+
+Future<String> get _localTempPath async {
+  var status = await Permission.storage.status;
+  if(status.isUndetermined) {
+    // We didn't ask for permission yet.
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.storage,
+      Permission.camera,
+    ].request();
+    print(statuses[Permission.storage]);
+  }
+  if(status.isGranted) {
+    final directory = await getTemporaryDirectory();
+
+    return directory.path;
+  } else {
+    return null;
+  }
+}
+
+Future<void> deleteCacheDir() async {
+  final dir = await _localTempPath;
+
+  Directory(dir.toString()).deleteSync(recursive: true);
+}
+
+Future<File> localFile(String id) async {
+  final path = await _localTempPath;
+
+  return new File('$path/$id.txt');
+}
+
+Future<bool> fileExistsInCache(String id) async {
+  final file = await localFile(id);
+
+  return file.exists();
+}
+
+Future<File> writeBlogImage(String id,Uint8List image) async {
+  final file = await localFile(id);
+
+  if(file.existsSync() == true)
+    return null;
+
+  return file.writeAsString(String.fromCharCodes(image));
+}
+
+Future<String> readBlogImage(String id) async {
+   try {
+     final file = await localFile(id);
+
+     return await file.readAsString();
+   }catch (e) {
+     return null;
+   }
 }

@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
+import 'package:faithstream/model/pendingcomment.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/singlepost/single_channel.dart';
 import 'package:faithstream/singlepost/single_post.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
+import 'package:faithstream/utils/ProviderUtils/pending_provider.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/helpingwidgets/blog_widgets.dart';
 import 'package:flutter/cupertino.dart';
@@ -62,8 +64,10 @@ class TitleAndLikes extends StatelessWidget {
 
 class LikeAndShareVideo extends StatefulWidget {
   final Blog singleBlog;
+  final String userToken;
+  final String memberId;
 
-  LikeAndShareVideo(this.singleBlog);
+  LikeAndShareVideo(this.singleBlog,this.userToken,this.memberId);
 
   @override
   _LikeAndShareVideoState createState() => _LikeAndShareVideoState();
@@ -72,17 +76,24 @@ class LikeAndShareVideo extends StatefulWidget {
 class _LikeAndShareVideoState extends State<LikeAndShareVideo> {
   @override
   Widget build(BuildContext context) {
+    print(widget.singleBlog.postId);
     return Row(
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.only(right: 10),
-          child: Icon(
-            Icons.thumb_up,
-            color: Provider.of<BlogProvider>(context)
-                        .getIsPostLiked(widget.singleBlog.postId) ==
-                    1
-                ? Colors.red
-                : Colors.black87,
+          child: GestureDetector(
+            onTap:() {
+                    Provider.of<BlogProvider>(context).setIsPostLiked = widget.singleBlog.postId;
+                    likePost(context, widget.userToken, widget.memberId, DateTime.now(), DateTime.now(), () {}, widget.singleBlog.postId);
+                  },
+            child: Icon(
+              Icons.thumb_up,
+              color: Provider.of<BlogProvider>(context)
+                              .getIsPostLiked(widget.singleBlog.postId) ==
+                          1
+                      ? Colors.red
+                      : Colors.black87,
+            ),
           ),
         ),
         Padding(
@@ -102,7 +113,8 @@ class ChannelInfoWidget extends StatelessWidget {
   final int channelId;
 
   ChannelInfoWidget(this.authorImage, this.authorName, this.numOfSubscribers,
-      this.constraints, {this.channelId});
+      this.constraints,
+      {this.channelId});
 
   @override
   Widget build(BuildContext context) {
@@ -331,28 +343,11 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
                     Container(
                       padding: EdgeInsets.only(left: 10.0),
                       child: GestureDetector(
-                        onTap: () {
+                        onTap: () async {
                           if (commentController.text.isNotEmpty) {
                             widget.isTrending != true
-                                ? commentOnPost(
-                                    context,
-                                    userToken,
-                                    "${memberId}",
-                                    postId: widget.postId,
-                                    commentText: commentController.value.text,
-                                    createdOn: DateTime.now(),
-                                    updatedOn: DateTime.now(),
-                                  ).then((value) => Navigator.pop(context))
-                                : commentOnVideoPost(
-                                    context,
-                                    userToken,
-                                    "${memberId}",
-                                    videoId: widget.postId,
-                                    commentText: commentController.value.text,
-                                    createdOn: DateTime.now(),
-                                    updatedOn: DateTime.now(),
-                                  ).then((value) => Navigator.pop(context));
-                            commentController.clear();
+                                ? await commentOnSinglePost(context)
+                             : commentOnVideoSinglePost(context);
                           }
                         },
                         child: Icon(
@@ -369,6 +364,61 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
         },
       ),
     );
+  }
+  Future<Builder> commentOnSinglePost(BuildContext context) async {
+    bool internet = await hasInternet();
+    Comment newComment = new Comment(
+        commentMemberId: int.parse(memberId),
+        temopraryId: "temporary${Provider.of<BlogProvider>(context).getCommentsList().length + 1}",
+        authorImage: profileImage,
+        commentText: commentController.value.text,
+        authorName: fullName,
+        time: compareDate(DateTime.now().toIso8601String()));
+    Provider.of<BlogProvider>(context).addComment(newComment);
+    commentController.clear();
+    FocusScope.of(context).unfocus();
+    if(internet == false) {
+      SharedPrefHelper sph = SharedPrefHelper();
+      Provider.of<PendingRequestProvider>(context).addPendingComments = new PendingComment(userToken: userToken, memberId: memberId, createdOn: DateTime.now(), updatedOn: DateTime.now(), postId: widget.postId, tempId: "temporary${Provider
+          .of<BlogProvider>(context)
+          .getCommentsList()
+          .length + 1}",commentText: newComment.commentText,commentedBy: fullName);
+      sph.savePosts(sph.pendingcomment_requests, Provider.of<PendingRequestProvider>(context).pendingComments);
+      Navigator.pop(context);
+    }
+    if(internet == true)
+    commentOnPost(
+        context,
+        userToken,
+        "${memberId}",
+        postId: widget.postId,
+        commentText: newComment.commentText,
+        createdOn: DateTime.now(),
+        updatedOn: DateTime.now(),
+        tempId: newComment.temopraryId
+    ).then((_) => Navigator.pop(context));
+  }
+  Builder commentOnVideoSinglePost(BuildContext context) {
+    Comment newComment = new Comment(
+        commentMemberId: int.parse(memberId),
+        temopraryId: "temporary${Provider.of<BlogProvider>(context).getCommentsList().length + 1}",
+        authorImage: profileImage,
+        commentText: commentController.value.text,
+        authorName: fullName,
+        time: compareDate(DateTime.now().toIso8601String()));
+    Provider.of<BlogProvider>(context).addTPostComment(newComment);
+    commentController.clear();
+    FocusScope.of(context).unfocus();
+    commentOnVideoPost(
+      context,
+      userToken,
+      "${memberId}",
+      videoId: widget.postId,
+      commentText: commentController.value.text,
+      tempId: newComment.temopraryId,
+      createdOn: DateTime.now(),
+      updatedOn: DateTime.now(),
+    ).then((value) => Navigator.pop(context));
   }
 }
 
@@ -438,7 +488,7 @@ class _SingleCommentState extends State<SingleComment> {
                   color: Colors.grey,
                 ),
                 widget.comments[widget.index].commentMemberId.toString() ==
-                        widget.memberId
+                        widget.memberId && widget.comments[widget.index].temopraryId == null
                     ? Padding(
                         padding: EdgeInsets.only(left: 4.0),
                         child: GestureDetector(

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:faithstream/homescreen/home_screen.dart';
 import 'package:faithstream/model/blog.dart';
@@ -53,6 +54,17 @@ Row buildHeading(
 }
 
 
+Future<bool> hasInternet() async {
+  try {
+    final result = await InternetAddress.lookup('google.com');
+    if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+      return true;
+    }
+  } on SocketException catch (_) {
+  }
+  return false;
+}
+
 void checkInternet(BuildContext context,{Future<void> futureFunction,void simpleFunction,Function noNet}) async {
   try {
     final result = await InternetAddress.lookup('google.com');
@@ -83,7 +95,7 @@ Row buildAvatarText(
     double height,
     Widget optionalWidgetOne,
     Widget optionalWidgetTwo,
-    Color color,{Function onTap}) {
+    Color color,{Function onTap,Uint8List authorImageBytes}) {
   return Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
@@ -95,9 +107,9 @@ Row buildAvatarText(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(50),
             image: DecorationImage(
-              image: image == null
-                  ? AssetImage("assets/images/test.jpeg")
-                  : NetworkImage(image),
+              image: image != null && authorImageBytes == null
+                  ? NetworkImage(image)
+                  : authorImageBytes == null ? AssetImage("assets/images/test.jpeg") : MemoryImage(authorImageBytes),
               fit: BoxFit.fill,
             ),
           ),

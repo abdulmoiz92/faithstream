@@ -42,13 +42,12 @@ class SinglePostContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ValueNotifier<List<Comment>> commentsValue = isTrending != true
-        ? ValueNotifier(
-        Provider.of<BlogProvider>(context).getCommentsList(postId))
-        : ValueNotifier(
-        Provider.of<BlogProvider>(context).getTPostCommentsList(postId));
+    ValueNotifier<List<Comment>> commentsValue = isTrending == true ? ValueNotifier(Provider.of<BlogProvider>(context).getTPostCommentsList()) : ValueNotifier(
+        Provider.of<BlogProvider>(context).getCommentsList());
 
     return LayoutBuilder(builder: (cnt, constraints) {
+      if(isTrending != true)
+      print(blog.postId);
       return SingleChildScrollView(
         child: Column(
           children: <Widget>[
@@ -67,7 +66,7 @@ class SinglePostContent extends StatelessWidget {
                         trendingPost: isTrending == true ? trendingPost : null,)),
                   Spacer(),
                   if(isTrending != true)
-                    LikeAndShareVideo(blog),
+                    LikeAndShareVideo(blog,userToken,memberId),
                 ],
               ),
             ),

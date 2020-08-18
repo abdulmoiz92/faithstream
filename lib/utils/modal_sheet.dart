@@ -90,7 +90,7 @@ class _ModalBottomState extends State<ModalBottom> {
                               Colors.black),
                           if (widget.memberId ==
                               widget.scrollingList[index].commentMemberId
-                                  .toString())
+                                  .toString() && widget.scrollingList[index].temopraryId == null)
                             Padding(
                               padding: EdgeInsets.only(top: 10),
                               child: GestureDetector(

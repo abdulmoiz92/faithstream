@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/model/donation.dart';
@@ -35,6 +36,8 @@ class Blog {
   List<Comment> comments;
   List<Donation> donations;
   final bool isPast;
+  Uint8List imageBytes;
+  Uint8List authorImageBytes;
 
   set addCommentSet(Comment comment) {
     comments.add(comment);
@@ -80,6 +83,12 @@ class Blog {
     this.isPaidVideo,
     this.isPurchased,
     this.videoPrice,
-    this.freeVideoLength
+    this.freeVideoLength,
+    this.imageBytes,
+    this.authorImageBytes
   });
+
+  Map toJson() => {
+    'postId': postId,
+  };
 }

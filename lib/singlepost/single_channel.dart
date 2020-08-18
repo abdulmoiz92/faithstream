@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:faithstream/model/channel.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/helpingwidgets/singlechannel_widgets.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -26,13 +28,15 @@ class _SingleChannelState extends State<SingleChannel> {
 
   Channel channel;
 
+  var appBarHeight = 0.0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
             icon: Icon(Icons.arrow_back_ios, color: Colors.black),
-            onPressed: () => Navigator.pop(context)),
+            onPressed: () => Navigator.of(context).pop()),
         title: Text(
           "Channel",
           textAlign: TextAlign.left,
@@ -46,49 +50,62 @@ class _SingleChannelState extends State<SingleChannel> {
           builder: (cntx, constraints) {
             return channel == null
                 ? Center(
-                    child: Container(
-                    width: 35,
-                    height: 35,
-                    child: CircularProgressIndicator(
-                      backgroundColor: Colors.red,
-                    ),
-                  ))
+                child: Container(
+                  width: 35,
+                  height: 35,
+                  child: CircularProgressIndicator(
+                    backgroundColor: Colors.red,
+                  ),
+                ))
                 : Container(
-                    width: double.infinity,
-                    height: MediaQuery.of(context).size.height * 1,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: <Widget>[
-                          SingleChannelHeader(
+                width: double.infinity,
+                height: MediaQuery
+                    .of(context)
+                    .size
+                    .height * 1,
+                child: NestedScrollView(
+                    headerSliverBuilder: (BuildContext context,bool innerBoxIsScrollable) {
+                      return <Widget> [
+                        SliverAppBar(
+                          leading: Container(),
+                          floating: true,
+                          expandedHeight: constraints.maxHeight * 0.3,
+                          flexibleSpace: SingleChannelHeader(
                             constraints,
                             channel: channel,
                             userToken: userToken,
                             memberId: memberId,
                           ),
-                          TabBar(
-                            indicatorColor: Colors.transparent,
-                            unselectedLabelColor: Colors.black87,
-                            labelColor: Colors.red,
-                            tabs: <Widget>[
-                              Tab(
-                                icon: Icon(Icons.timeline),
-                                text: "Wall",
-                              ),
-                              Tab(
-                                icon: Icon(Icons.videocam),
-                                text: "Videos",
-                              ),
-                              Tab(
-                                icon: Icon(Icons.event),
-                                text: "Events",
-                              ),
-                            ],
-                          ),
-                          Container(
+                        ),
+                      ];
+                    },
+                    body: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        TabBar(
+                          indicatorColor: Colors.transparent,
+                          unselectedLabelColor: Colors.black87,
+                          labelColor: Colors.red,
+                          tabs: <Widget>[
+                            Tab(
+                              icon: Icon(Icons.timeline),
+                              text: "Wall",
+                            ),
+                            Tab(
+                              icon: Icon(Icons.videocam),
+                              text: "Videos",
+                            ),
+                            Tab(
+                              icon: Icon(Icons.event),
+                              text: "Events",
+                            ),
+                          ],
+                        ),
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: Container(
                             width: double.infinity,
-                            height: constraints.maxHeight * 0.8,
                             child: TabBarView(
                               children: <Widget>[
                                 SingleChannelWall(widget.channelId),
@@ -96,10 +113,11 @@ class _SingleChannelState extends State<SingleChannel> {
                                 SingleChannelEvents(widget.channelId),
                               ],
                             ),
-                          )
-                        ],
-                      ),
-                    ));
+                          ),
+                        ),
+                      ],
+                    )
+                ));
           },
         ),
       ),
@@ -121,17 +139,18 @@ class _SingleChannelState extends State<SingleChannel> {
         userToken = prefs.getString(sph.user_token);
         memberId = prefs.getString(sph.member_id);
       });
+    Provider.of<BlogProvider>(context).resetSingleChannelBlogs();
     checkInternet(context, futureFunction: getVideos());
   }
 
   Future<void> getVideos() async {
     var channelData = await http.get(
-        "http://api.faithstreams.net/api/Member/GetChannelByID/${widget.channelId}/$memberId",
+        "http://api.faithstreams.net/api/Member/GetChannelByID/${widget
+            .channelId}/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     if (channelData.body.isNotEmpty) {
       var channelDataJson = json.decode(channelData.body);
-      print(channelDataJson['data']);
       if (channelDataJson['data'] != null) {
         var data = channelDataJson['data'];
 

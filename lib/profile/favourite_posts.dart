@@ -94,11 +94,6 @@ class _FavouritePostsState extends State<FavouritePosts> {
 
           var postData = u;
 
-          int imageWidth;
-          int imageHeight;
-
-          Image image;
-
           Blog newBlog = new Blog(
               postId: null,
               postType: null,
@@ -115,20 +110,6 @@ class _FavouritePostsState extends State<FavouritePosts> {
 
           if(mounted)
             setState(() {
-              if(u['postType'] == "Event") image = new Image.network(postData['event']['image'] == null ? "" : postData['event']['image']);
-              if (u['postType'] == "Video") image = new Image.network(postData['video']['thumbnail'] == null ? "" : postData['video']['thumbnail']);
-              if (u['postType'] == "Image") image = new Image.network(postData['image']['url'] == null ? "" : postData['image']['url']);
-              Completer<ui.Image> completer = new Completer<ui.Image>();
-              image.image
-                  .resolve(new ImageConfiguration())
-                  .addListener(ImageStreamListener((ImageInfo info,bool _) {
-                completer.complete(info.image);
-                if(mounted) setState(() {
-                  imageWidth = info.image.width;
-                  imageHeight = info.image.height;
-                });
-              }));
-
               if (u['postType'] == "Event")
                 newBlog = new Blog(
                     postId: postData['id'],
@@ -138,6 +119,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
                         : postData['event']['video'],
                     image: postData['event']['image'],
                     title: postData['title'],
+                    authorId: postData['authorID'],
                     author: postData['authorName'],
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
@@ -156,8 +138,6 @@ class _FavouritePostsState extends State<FavouritePosts> {
                         .format(
                         DateTime.parse(postData['event']['postSchedule']))}",
                     comments: commentsList,
-                    imageWidth: postData['event']['image'] == null ?  null : imageWidth,
-                    imageHeight: postData['event']['image'] == null ? null : imageHeight
                 );
               if (u['postType'] == "Video")
                 newBlog = new Blog(
@@ -166,6 +146,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
                     videoUrl: postData['video']['url'],
                     image: postData['video']['thumbnail'],
                     title: postData['title'],
+                    authorId: postData['authorID'],
                     author: postData['authorName'],
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
@@ -173,8 +154,6 @@ class _FavouritePostsState extends State<FavouritePosts> {
                     likes: "${postData['video']['numOfLikes']}",
                     views: "${postData['video']['numOfViews']}",
                     subscribers: "${postData['numOfSubscribers']}",
-                    imageWidth: postData['video']['thumbnail'] == null ? null : imageWidth,
-                    imageHeight: postData['video']['thumbnail'] == null ? null : imageHeight!= null && imageHeight > 700 ? null : imageHeight,
                     videoDuration: "",
                     comments: commentsList);
 
@@ -185,6 +164,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
                   videoUrl: null,
                   image: postData['image']['url'],
                   title: postData['title'],
+                  authorId: postData['authorID'],
                   author: postData['authorName'],
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
@@ -192,24 +172,22 @@ class _FavouritePostsState extends State<FavouritePosts> {
                   likes: "${postData['likesCount']}",
                   views: null,
                   subscribers: "${postData['numOfSubscribers']}",
-                  imageWidth: imageWidth,
-                  imageHeight: imageHeight,
                   comments: commentsList,
                 );
 
-              /*var isFavouritejsonData = jsonDecode(isFavouriteData.body);
+              var isFavouritejsonData = jsonDecode(isFavouriteData.body);
               if(isFavouriteData.body.isNotEmpty)
                 if(isFavouritejsonData['data'] != null)
                   for(var fv in isFavouritejsonData['data'] ) {
                     if(fv['id'] == newBlog.postId)
+                      newBlog.setIsFavourite = 1;
+                  }
 
-                  }*/
-
-              /*if(u['postLikes'] != [])
+              if(u['postLikes'] != [])
                 for(var il in u['postLikes']) {
                   if(il['memberID'] == memberId)
-
-                }*/
+                    newBlog.setIsLiked = 1;
+                }
             });
             Provider.of<BlogProvider>(context).addFavouriteTimeLine = newBlog;
             setState(() {});

@@ -142,6 +142,7 @@ class _EventsFollowedState extends State<EventsFollowed> {
                 date: postData['dateCreated'],
                 time: "${compareDate(postData['dateCreated'])} ago",
                 eventLocation: postData['location'],
+                isPast: postData['isPast'],
                 eventTime:
                     "${DateFormat.jm().format(DateTime.parse(postData['startTime']))} | ${DateFormat.jm().format(DateTime.parse(postData['endTime']))} , ${DateFormat.MMMd().format(DateTime.parse(postData['postSchedule']))}",
               );

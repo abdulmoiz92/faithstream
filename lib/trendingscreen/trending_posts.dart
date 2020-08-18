@@ -62,6 +62,7 @@ class _TrendingPostsScreenState extends State<TrendingPostsScreen>
         userToken = prefs.getString(sph.user_token);
         memberId = prefs.getString(sph.member_id);
       });
+    Provider.of<BlogProvider>(context).resetTrendingVideos();
     if(mounted)
     checkInternet(context,futureFunction: getTrendingVideos());
   }

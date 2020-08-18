@@ -7,6 +7,8 @@ class Comment {
   String authorImage;
   String authorName;
   String time;
+  String temopraryId;
 
-  Comment({@required this.commentId,@required this.commentMemberId,@required this.commentText,@required this.authorImage,@required this.authorName,@required this.time});
+  Comment({@required this.commentId,@required this.commentMemberId,@required this.commentText,@required this.authorImage,@required this.authorName,@required this.time,this.temopraryId});
+
 }
