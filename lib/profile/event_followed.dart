@@ -116,7 +116,7 @@ class _EventsFollowedState extends State<EventsFollowed> {
 
   Future<void> getVideos() async {
     var channelData = await http.get(
-        "http://api.faithstreams.net/api/Member/GetMemberFollowedEvents/$memberId",
+        "$baseAddress/api/Member/GetMemberFollowedEvents/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     print("$memberId");

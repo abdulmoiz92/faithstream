@@ -94,7 +94,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
 
   Future<void> getSubCategory() async {
     var CategoryData = await http.get(
-        "http://api.faithstreams.net/api/Common/GetSubCategories/${widget.catId}",
+        "$baseAddress/api/Common/GetSubCategories/${widget.catId}",
         headers: {"Authorization": "Bearer $userToken"});
 
     var CategoryDataJson = json.decode(CategoryData.body);

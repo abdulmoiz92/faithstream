@@ -102,7 +102,7 @@ class EditProfileTop extends StatelessWidget {
                 ),
                 Spacer(),
                 Container(
-                    child: buildIconText(context, "${compareDate(date)} ago",
+                    child: buildIconText(context, "${compareDate(date)}",
                         Icons.calendar_today, 4.0, Colors.white)),
               ],
             ),

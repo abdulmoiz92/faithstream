@@ -4,6 +4,9 @@ import 'dart:ffi';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:connectivity/connectivity.dart';
+import 'package:data_connection_checker/data_connection_checker.dart';
+import 'package:faithstream/main.dart';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/model/donation.dart';
@@ -12,7 +15,6 @@ import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/ProviderUtils/pending_provider.dart';
-import 'package:faithstream/utils/database/image_database.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
@@ -31,7 +33,7 @@ class BlogPostsScreen extends StatefulWidget {
 }
 
 class BlogPostsScreenState extends State<BlogPostsScreen>
-    with AutomaticKeepAliveClientMixin<BlogPostsScreen>, ChangeNotifier {
+    with AutomaticKeepAliveClientMixin<BlogPostsScreen>{
   var internet;
 
   SharedPrefHelper sph = SharedPrefHelper();
@@ -44,9 +46,11 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
   String userId;
   String userToken;
   String memberId;
+  String profileImage;
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return LayoutBuilder(builder: (cntx, constraints) {
       return SingleChildScrollView(
         child: Container(
@@ -61,7 +65,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
               .blogsLength > 1
               ? YourBlogs(Provider
               .of<BlogProvider>(context)
-              .getAllBlogs, memberId, userToken)
+              .getAllBlogs, memberId, userToken,profileImage: profileImage,)
               : const Center(
             child: CircularProgressIndicator(
               backgroundColor: Colors.red,
@@ -73,94 +77,27 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
   }
 
   Future<SharedPreferences> getData() async {
-    internet = await hasInternet();
-    setState(() {
-
-    });
+    if(Provider.of<PendingRequestProvider>(globalContext).connectivityResult == ConnectivityResult.wifi || Provider.of<PendingRequestProvider>(globalContext).connectivityResult == ConnectivityResult.mobile) {
+      internet = await DataConnectionChecker().hasConnection;
+      setState(() {});
+    }
+    if(Provider.of<PendingRequestProvider>(globalContext).connectivityResult == ConnectivityResult.none) {
+      internet = false;
+      setState(() {});
+    }
     SharedPreferences prefs = await SharedPreferences.getInstance();
     SharedPrefHelper sph = SharedPrefHelper();
-    if (internet == true) {
-      await completePendingLikeRequests();
-      await completePendingFavouriteRequests();
-      await completePendingRemoveFavouriteRequests();
-      await completePendingCommentRequests();
-    }
     if (mounted) setState(() {
       userId = prefs.getString(sph.user_id);
       userToken = prefs.getString(sph.user_token);
       memberId = prefs.getString(sph.member_id);
+      profileImage = prefs.getString(sph.profile_image);
     });
     Provider
         .of<BlogProvider>(context)
         .resetBlog = [];
-    internet == true ? getVideos() : getVideosFromPrefs();
+    internet == true ? getVideos() : await getVideosFromPrefs();
   }
-
-  Future<void> completePendingFavouriteRequests() async {
-    var pendingFavouriteJsonData = await sph.readPosts(
-        sph.pendingfavourite_requests);
-    if (pendingFavouriteJsonData != null) {
-      for (var l in pendingFavouriteJsonData) {
-        addToFavourite(context, l['userToken'], l['memberId'], l['blogId']);
-      }
-      Provider.of<PendingRequestProvider>(context).resetPendingFavourites();
-      sph.clearKeyFromPrefs(sph.pendingfavourite_requests);
-    }
-  }
-
-  Future<void> completePendingRemoveFavouriteRequests() async {
-    var pendingRemoveFavouriteJsonData = await sph.readPosts(
-        sph.pendingremovefavourite_requests);
-    if (pendingRemoveFavouriteJsonData != null) {
-      for (var l in pendingRemoveFavouriteJsonData) {
-        removeFromFavourite(
-            context, l['userToken'], l['memberId'], l['blogId']);
-      }
-      Provider.of<PendingRequestProvider>(context)
-          .resetPendingRemoveFavourites();
-      sph.clearKeyFromPrefs(sph.pendingremovefavourite_requests);
-    }
-  }
-
-
-  Future<void> completePendingLikeRequests() async {
-    var pendingLikeJsonData = await sph.readPosts(sph.pendinglikes_requests);
-    if (pendingLikeJsonData != null) {
-      for (var l in pendingLikeJsonData) {
-        likePost(
-            context,
-            l['userToken'],
-            l['memberId'],
-            DateTime.parse(l['createdOn']),
-            DateTime.parse(l['updatedOn']), () {},
-            l['blogId']);
-      }
-      Provider.of<PendingRequestProvider>(context).resetPendingLikes();
-      sph.clearKeyFromPrefs(sph.pendinglikes_requests);
-    }
-  }
-
-  Future<void> completePendingCommentRequests() async {
-    var pendingCommentJsonData = await sph.readPosts(
-        sph.pendingcomment_requests);
-    if (pendingCommentJsonData != null) {
-      for (var l in pendingCommentJsonData) {
-        commentOnPost(
-            context,
-            l['userToken'],
-            l['memberId'],
-            createdOn: DateTime.parse(l['createdOn']),
-            updatedOn: DateTime.parse(l['updatedOn']),
-            postId: l['postId'],
-            tempId: l['tempId'],
-            commentText: l['commentText'],
-            commentBy: l['commentedBy']);
-      }
-      Provider.of<PendingRequestProvider>(context).resetPendingComments();
-      sph.clearKeyFromPrefs(sph.pendingcomment_requests);
-    }
-  }
-
 
   Future<void> getVideosFromPrefs() async {
     SharedPrefHelper sph = SharedPrefHelper();
@@ -188,7 +125,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
             authorImage: null,
             date: null,
             time: null,
-            likes: null,
+            likesCount: null,
             views: null,
             subscribers: null);
 
@@ -222,7 +159,8 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                   authorImageBytes: authorImageBytes,
                   date: postData['dateCreated'],
                   time: "${compareDate(postData['dateCreated'])} ago",
-                  likes: "${postData['likesCount']}",
+                  likesCount: postData['likesCount'],
+                  commentsCount: postData['commentsCount'],
                   views: postData['event']['video'] != null
                       ? "${postData['event']['video']['numOfViews']}"
                       : null,
@@ -236,7 +174,6 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                       postData['event']['endTime']))} , ${DateFormat.MMMd()
                       .format(
                       DateTime.parse(postData['event']['postSchedule']))}",
-                  comments: commentsList,
                   isDonationRequired: postData['isDonationRequire'],
                   donations: donnations,
                   imageBytes: imageBytes,
@@ -256,11 +193,11 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
                   time: "${compareDate(postData['dateCreated'])} ago",
-                  likes: "${postData['video']['numOfLikes']}",
+                  likesCount: postData['video']['numOfLikes'],
+                  commentsCount: postData['commentsCount'],
                   views: "${postData['video']['numOfViews']}",
                   subscribers: "${postData['numOfSubscribers']}",
                   videoDuration: "",
-                  comments: commentsList,
                   imageBytes: imageBytes,
                   donations: donnations,
                   isDonationRequired: postData['isDonationRequire'],
@@ -283,12 +220,12 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                 authorImage: postData['authorImage'],
                 date: postData['dateCreated'],
                 time: "${compareDate(postData['dateCreated'])} ago",
-                likes: "${postData['likesCount']}",
+                likesCount: postData['likesCount'],
+                commentsCount: postData['commentsCount'],
                 views: null,
                 subscribers: "${postData['numOfSubscribers']}",
                 isDonationRequired: postData['isDonationRequire'],
                 donations: donnations,
-                comments: commentsList,
                 imageBytes: imageBytes,
               );
 
@@ -311,19 +248,53 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
             .addBlog = newBlog;
         setState(() {});
       }
+    if(internet == false) {
+      await completePendingFavouriteRequestsOffline();
+      await completePendingRemoveFavouriteRequestsOffline();
+      await completePendingLikeRequestsOffline();
+    }
+  }
+
+  Future<void> completePendingFavouriteRequestsOffline() async {
+    var pendingFavouriteJsonData = await sph.readPosts(
+        sph.pendingfavourite_requests);
+    if (pendingFavouriteJsonData != null) {
+      for (var l in pendingFavouriteJsonData) {
+        Provider.of<BlogProvider>(context).setIsPostFavourite = l['blogId'];
+      }
+    }
+  }
+
+  Future<void> completePendingRemoveFavouriteRequestsOffline() async {
+    var pendingRemoveFavouriteJsonData = await sph.readPosts(
+        sph.pendingremovefavourite_requests);
+    if (pendingRemoveFavouriteJsonData != null) {
+      for (var l in pendingRemoveFavouriteJsonData) {
+        Provider.of<BlogProvider>(context).setIsPostFavourite = l['blogId'];
+      }
+    }
+  }
+
+
+  Future<void> completePendingLikeRequestsOffline() async {
+    var pendingLikeJsonData = await sph.readPosts(sph.pendinglikes_requests);
+    if (pendingLikeJsonData != null) {
+      for (var l in pendingLikeJsonData) {
+        Provider.of<BlogProvider>(context).setIsPostLiked = l['blogId'];
+      }
+    }
   }
 
 
   Future<void> getVideos() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
     SharedPrefHelper sph = SharedPrefHelper();
-    final bool internet = await hasInternet();
+    final bool internet = Provider.of<PendingRequestProvider>(context).internet;
     var channelData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetTimeLine2/$memberId",
+        "$baseAddress/api/Post/GetTimeLine2/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     var isFavouriteData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
+        "$baseAddress/api/Post/GetFavoriteTimeLine/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     print("$memberId");
@@ -342,11 +313,6 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
 
           var postData = u;
 
-          int imageWidth;
-          int imageHeight;
-
-          Image image;
-
           Blog newBlog = new Blog(
               postId: null,
               postType: null,
@@ -357,7 +323,7 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
               authorImage: null,
               date: null,
               time: null,
-              likes: null,
+              likesCount: null,
               views: null,
               subscribers: null);
 
@@ -390,7 +356,8 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
                     time: "${compareDate(postData['dateCreated'])} ago",
-                    likes: "${postData['likesCount']}",
+                    likesCount: postData['likesCount'],
+                    commentsCount: postData['commentsCount'],
                     views: postData['event']['video'] != null
                         ? "${postData['event']['video']['numOfViews']}"
                         : null,
@@ -404,7 +371,6 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                         postData['event']['endTime']))} , ${DateFormat.MMMd()
                         .format(
                         DateTime.parse(postData['event']['postSchedule']))}",
-                    comments: commentsList,
                     isDonationRequired: postData['isDonationRequire'],
                     donations: donnations,
                     isTicketAvailable: postData['event']['isTicketPurchaseRequired'],
@@ -422,19 +388,11 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
                     time: "${compareDate(postData['dateCreated'])} ago",
-                    likes: "${postData['video']['numOfLikes']}",
+                    likesCount: postData['likesCount'],
+                    commentsCount: postData['commentsCount'],
                     views: "${postData['video']['numOfViews']}",
                     subscribers: "${postData['numOfSubscribers']}",
-                    imageWidth: postData['video']['thumbnail'] == null
-                        ? null
-                        : imageWidth,
-                    imageHeight: postData['video']['thumbnail'] == null
-                        ? null
-                        : imageHeight != null && imageHeight > 700
-                        ? null
-                        : imageHeight,
                     videoDuration: "",
-                    comments: commentsList,
                     donations: donnations,
                     isDonationRequired: postData['isDonationRequire'],
                     isPaidVideo: postData['video']['isPaidContent'],
@@ -456,14 +414,12 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
                   time: "${compareDate(postData['dateCreated'])} ago",
-                  likes: "${postData['likesCount']}",
+                  likesCount: postData['likesCount'],
+                  commentsCount: postData['commentsCount'],
                   views: null,
                   subscribers: "${postData['numOfSubscribers']}",
                   isDonationRequired: postData['isDonationRequire'],
-                  imageWidth: imageWidth,
-                  imageHeight: imageHeight,
                   donations: donnations,
-                  comments: commentsList,
                 );
 
               var isFavouritejsonData = jsonDecode(isFavouriteData.body);
@@ -485,7 +441,6 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
                     newBlog.setIsLiked = 1;
                   }
                 }
-              allBlogs.add(newBlog);
               donnations = [];
             });
           Provider
@@ -548,24 +503,20 @@ class BlogPostsScreenState extends State<BlogPostsScreen>
     }
     if (url == null)
       return;
-    final ByteData imageData = await NetworkAssetBundle(Uri.parse(url)).load(
-        "");
-    final Uint8List bytes = imageData.buffer.asUint8List();
-    writeBlogImage(id, bytes);
+    writeBlogImage(id, url);
   }
 
   Future<Uint8List> getNetworkImage(String id) async {
-    String image = await readBlogImage(id);
+    Uint8List image = await readBlogImage(id);
     if (image == null)
       return null;
-    final Uint8List bytes = Uint8List.fromList(image.codeUnits);
-    return bytes;
+    return image;
   }
 
   @override
   void initState() {
-    getData();
     super.initState();
+    getData();
   }
 
   @override

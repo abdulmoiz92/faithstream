@@ -26,5 +26,4 @@ class PendingComment {
       'postId': postId,
       'tempId': tempId,'commentText': commentText,'commentedBy': commentedBy };
   }
-
 }

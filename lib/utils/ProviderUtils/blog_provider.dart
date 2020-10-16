@@ -14,6 +14,7 @@ class BlogProvider with ChangeNotifier {
   List<Blog> singleChannelBlogs = [];
   List<Blog> searchBlogs = [];
   List<Channel> searchChannels = [];
+  List<TPost> searchTrending = [];
  var appBarHeight = 0.0;
 
  void increaseItems(int previousLength,List<Blog> blogList) {
@@ -23,6 +24,119 @@ class BlogProvider with ChangeNotifier {
      notifyListeners();
    }
  }
+
+ bool doesCommentExist(String commentId) {
+   if(comments.indexWhere((element) => element.commentId == commentId)!= -1)
+     return true;
+   return false;
+ }
+
+ void increaseLikesCount(String postId) {
+   print("called");
+   if(searchBlogs.isNotEmpty && searchBlogs.indexWhere((element) => element.postId == postId) != -1) {
+     searchBlogs.firstWhere((element) => element.postId == postId).increaseLikeCount = null;
+   }
+   if(singleChannelBlogs.isNotEmpty && singleChannelBlogs.indexWhere((element) => element.postId == postId) != -1) {
+     singleChannelBlogs.firstWhere((element) => element.postId == postId).increaseLikeCount = null;
+   }
+   if(allBlogs.isNotEmpty && allBlogs.indexWhere((element) => element.postId == postId) != -1) {
+     allBlogs.firstWhere((element) => element.postId == postId).increaseLikeCount = null;
+   }
+   notifyListeners();
+ }
+
+ void setLikesCount(int count,postId) {
+   if(likingPostInProcess == false) {
+     if (searchBlogs.isNotEmpty) {
+       if (searchBlogs.indexWhere((element) => element.postId == postId) != -1)
+         searchBlogs
+             .firstWhere((element) => element.postId == postId)
+             .likesCount = count;
+     }
+     if (singleChannelBlogs.isNotEmpty) {
+       if (singleChannelBlogs.indexWhere((element) =>
+       element.postId == postId) != -1)
+         singleChannelBlogs
+             .firstWhere((element) => element.postId == postId)
+             .likesCount = count;
+     }
+     if (allBlogs.isNotEmpty) {
+       if (allBlogs.indexWhere((element) => element.postId == postId) != -1)
+         allBlogs
+             .firstWhere((element) => element.postId == postId)
+             .likesCount = count;
+     }
+   }
+   notifyListeners();
+ }
+
+  void decreaseLikesCount(String postId) {
+    if(searchBlogs.isNotEmpty && searchBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      searchBlogs.firstWhere((element) => element.postId == postId).decreseLikeCount = null;
+      print("done");
+    }
+    if(singleChannelBlogs.isNotEmpty && singleChannelBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      singleChannelBlogs.firstWhere((element) => element.postId == postId).decreseLikeCount = null;
+      print("done");
+    }
+    if(allBlogs.isNotEmpty && allBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      allBlogs.firstWhere((element) => element.postId == postId).decreseLikeCount = null;
+      print("done");
+    }
+    notifyListeners();
+  }
+
+  void setCommentCount(int count,postId) {
+   if(addingCommentInProcess == false) {
+     if (searchBlogs.isNotEmpty) {
+       if (searchBlogs.indexWhere((element) => element.postId == postId) != -1)
+         searchBlogs
+             .firstWhere((element) => element.postId == postId)
+             .commentsCount = count;
+     }
+     if (singleChannelBlogs.isNotEmpty) {
+       if (singleChannelBlogs.indexWhere((element) =>
+       element.postId == postId) != -1)
+         singleChannelBlogs
+             .firstWhere((element) => element.postId == postId)
+             .commentsCount = count;
+     }
+     if (allBlogs.isNotEmpty) {
+       if (allBlogs.indexWhere((element) => element.postId == postId) != -1)
+         allBlogs
+             .firstWhere((element) => element.postId == postId)
+             .commentsCount = count;
+     }
+   }
+    notifyListeners();
+  }
+
+  void increaseCommentCount(String postId) {
+    if(searchBlogs.isNotEmpty && searchBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      searchBlogs.firstWhere((element) => element.postId == postId).increaseCommentCount = null;
+    }
+    if(singleChannelBlogs.isNotEmpty && singleChannelBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      singleChannelBlogs.firstWhere((element) => element.postId == postId).increaseCommentCount = null;
+    }
+    if(allBlogs.isNotEmpty && allBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      allBlogs.firstWhere((element) => element.postId == postId).increaseCommentCount = null;
+    }
+    notifyListeners();
+  }
+
+  void decreaseCommentCount(String postId) {
+    if(searchBlogs.isNotEmpty && searchBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      searchBlogs.firstWhere((element) => element.postId == postId).decreseCommentCount = null;
+    }
+    if(singleChannelBlogs.isNotEmpty && singleChannelBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      singleChannelBlogs.firstWhere((element) => element.postId == postId).decreseCommentCount = null;
+    }
+    if(allBlogs.isNotEmpty && allBlogs.indexWhere((element) => element.postId == postId) != -1) {
+      allBlogs.firstWhere((element) => element.postId == postId).decreseCommentCount = null;
+    }
+    notifyListeners();
+  }
+
 
   set setAppBarHeight(double height) {
     appBarHeight = height;
@@ -106,6 +220,38 @@ class BlogProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  set addTrendingSearch(TPost tPost) {
+    searchTrending.add(tPost);
+    notifyListeners();
+  }
+
+  void resetTrendingSearch() {
+    searchTrending = [];
+    notifyListeners();
+  }
+
+  int getPostLikedCounts(String id) {
+    if(postExistsInBlog(id))
+      return allBlogs.firstWhere((element) => element.postId == id).likesCount;
+    if(postExistsInSingleChannelBlog(id))
+      return singleChannelBlogs.firstWhere((element) => element.postId == id).likesCount;
+    if(postExistsInSearchBlog(id))
+      return searchBlogs.firstWhere((element) => element.postId == id).likesCount;
+    if(postExistsInFavouriteTimeline(id))
+      return favouriteTimeLine.firstWhere((element) => element.postId == id).likesCount;
+  }
+
+  int getPostCommentCounts(String id) {
+    if(postExistsInBlog(id))
+      return allBlogs.firstWhere((element) => element.postId == id).commentsCount;
+    if(postExistsInSingleChannelBlog(id))
+      return singleChannelBlogs.firstWhere((element) => element.postId == id).commentsCount;
+    if(postExistsInSearchBlog(id))
+      return searchBlogs.firstWhere((element) => element.postId == id).commentsCount;
+    if(postExistsInFavouriteTimeline(id))
+      return favouriteTimeLine.firstWhere((element) => element.postId == id).commentsCount;
+  }
+
   set setIsPostFavourite(String id) {
     if(postExistsInBlog(id))
     allBlogs.firstWhere((element) => element.postId == id).setIsFavourite = allBlogs.firstWhere((element) => element.postId == id).getIsFavourite == 1 ? 0 : 1;
@@ -141,6 +287,76 @@ class BlogProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setPostComment(String postId,Comment comment) {
+    if(allBlogs.isNotEmpty)
+    if(allBlogs.indexWhere((element) => element.postId == postId) != -1)
+    allBlogs.firstWhere((element) => element.postId == postId).setComment = comment;
+    if(searchBlogs.isNotEmpty)
+    if(searchBlogs.indexWhere((element) => element.postId == postId) != -1)
+    searchBlogs.firstWhere((element) => element.postId == postId).setComment = comment;
+    if(singleChannelBlogs.isNotEmpty )
+    if( singleChannelBlogs.indexWhere((element) => element.postId == postId) != -1)
+    singleChannelBlogs.firstWhere((element) => element.postId == postId).setComment = comment;
+    notifyListeners();
+  }
+
+  void commentExistsInPostComment(Comment comment,String postId) {
+    if(allBlogs.isNotEmpty)
+    if(allBlogs.indexWhere((element) => element.postId == postId) != -1)
+    if(comment.commentId == allBlogs.firstWhere((element) => element.postId == postId).postComment.commentId)
+    allBlogs.firstWhere((element) => element.postId == postId).setComment = null;
+    if(searchBlogs.isNotEmpty)
+    if(searchBlogs.indexWhere((element) => element.postId == postId) != -1)
+    if(comment.commentId == searchBlogs.firstWhere((element) => element.postId == postId).postComment.commentId)
+    searchBlogs.firstWhere((element) => element.postId == postId).setComment = null;
+    if(singleChannelBlogs.isNotEmpty)
+    if(singleChannelBlogs.indexWhere((element) => element.postId == postId) != -1)
+    if(comment.commentId == singleChannelBlogs.firstWhere((element) => element.postId == postId).postComment.commentId)
+    singleChannelBlogs.firstWhere((element) => element.postId == postId).setComment = null;
+    else {
+      return;
+    }
+    notifyListeners();
+  }
+
+  void setPostCommentId(String commentId,String postId) {
+    allBlogs.firstWhere((element) => element.postId == postId).postComment.commentId = commentId;
+    allBlogs.firstWhere((element) => element.postId == postId).postComment.temopraryId = null;
+    notifyListeners();
+  }
+
+  List<Comment> commentsInDeleteProcess = [];
+
+  set addcommentInDeleteProcess(Comment comment) {
+    commentsInDeleteProcess.add(comment);
+    notifyListeners();
+  }
+
+  set deleteCommentInDeleteProcess(String id) {
+    commentsInDeleteProcess.firstWhere((element) => element.commentId == id);
+    notifyListeners();
+  }
+
+  bool doesCommentExistInDeleteProcess(String commentId) {
+    if(commentsInDeleteProcess.indexWhere((element) => element.commentId == commentId)!= -1)
+      return true;
+    return false;
+  }
+
+  bool addingCommentInProcess = false;
+
+  set setAddingCommentInProcess(bool value) {
+    addingCommentInProcess = value;
+    notifyListeners();
+  }
+
+  bool likingPostInProcess = false;
+
+  set setLikingPostInProcess(bool value) {
+    likingPostInProcess = value;
+    notifyListeners();
+  }
+
   get blogsLength => allBlogs.length;
 
   get getAllBlogs => allBlogs;
@@ -164,8 +380,11 @@ class BlogProvider with ChangeNotifier {
 
   get getFavouriteTimeLine => favouriteTimeLine;
 
-  void addComment(Comment comment) {
-    comments.add(comment);
+  void addComment(Comment comment,{String postId}) {
+    if(addingCommentInProcess == false) {
+      comments.insert(comments.length, comment);
+      increaseCommentCount(postId);
+    }
     notifyListeners();
   }
 

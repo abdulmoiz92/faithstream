@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:faithstream/loginscreen/components/login_textfeild.dart';
 import 'package:faithstream/loginscreen/register_screen.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Container(
           width: double.infinity,
@@ -113,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _authenticateUser(String username, String password) async {
     final response = await http.post(
-        "http://api.faithstreams.net/api/User/authenticate",
+        "$baseAddress/api/User/authenticate",
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -132,6 +134,8 @@ class _LoginScreenState extends State<LoginScreen> {
         sph.setIsLogin(true);
         sph.setMemberId("${json.decode(response.body)['data']['memberInfo']['id']}");
         sph.setProfileImage("${json.decode(response.body)['data']['memberInfo']['profileImage']}");
+        await writeProfileImage("${json.decode(response.body)['data']['memberInfo']['profileImage']}");
+        print(await readProfileImage());
         sph.setFirstName("${json.decode(response.body)['data']['firstName']}");
         sph.setLastName("${json.decode(response.body)['data']['lastName']}");
         Navigator.of(context).popUntil((route) => route.isFirst);

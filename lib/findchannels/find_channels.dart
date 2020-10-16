@@ -72,7 +72,7 @@ class _findChannelsScreenState extends State<FindChannelsScreen> with AutomaticK
 
   Future<void> getCategory() async {
     var CategoryData = await http.get(
-        "http://api.faithstreams.net/api/Common/GetCategories",
+        "$baseAddress/api/Common/GetCategories",
         headers: {"Authorization": "Bearer $userToken"});
 
     var CategoryDataJson = json.decode(CategoryData.body);

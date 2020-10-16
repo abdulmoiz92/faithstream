@@ -69,7 +69,7 @@ class _TrendingPostsScreenState extends State<TrendingPostsScreen>
 
   Future<void> getTrendingVideos() async {
     var trendingVideosData = await http.get(
-        "http://api.faithstreams.net/api/Channel/GetTrendingVideos",
+        "$baseAddress/api/Channel/GetTrendingVideos",
         headers: {"Authorization": "Bearer $userToken"});
 
     var trendingVideosDataJson = json.decode(trendingVideosData.body);
@@ -77,7 +77,7 @@ class _TrendingPostsScreenState extends State<TrendingPostsScreen>
     for (var t in trendingVideosDataJson['data']) {
       int channelId = t['channelID'];
       var channelInfo = await http.get(
-          "http://api.faithstreams.net/api/Channel/GetChannelByID/$channelId",
+          "$baseAddress/api/Channel/GetChannelByID/$channelId",
           headers: {"Authorization": "Bearer $userToken"});
       var channelInfoJson = json.decode(channelInfo.body);
       if (mounted) {

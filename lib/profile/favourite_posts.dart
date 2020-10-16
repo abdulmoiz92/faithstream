@@ -74,10 +74,10 @@ class _FavouritePostsState extends State<FavouritePosts> {
 
   Future<void> getVideos() async {
     var channelData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
+        "$baseAddress/api/Post/GetFavoriteTimeLine/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
     var isFavouriteData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
+        "$baseAddress/api/Post/GetFavoriteTimeLine/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     print("$memberId");
@@ -104,7 +104,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
               authorImage: null,
               date: null,
               time: null,
-              likes: null,
+              likesCount: null,
               views: null,
               subscribers: null);
 
@@ -124,7 +124,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
                     time: "${compareDate(postData['dateCreated'])} ago",
-                    likes: "${postData['likesCount']}",
+                    likesCount: postData['likesCount'],
                     views: postData['event']['video'] != null
                         ? "${postData['event']['video']['numOfViews']}"
                         : null,
@@ -136,8 +136,7 @@ class _FavouritePostsState extends State<FavouritePosts> {
                         .format(DateTime.parse(
                         postData['event']['endTime']))} , ${DateFormat.MMMd()
                         .format(
-                        DateTime.parse(postData['event']['postSchedule']))}",
-                    comments: commentsList,
+                        DateTime.parse(postData['event']['postSchedule']))}"
                 );
               if (u['postType'] == "Video")
                 newBlog = new Blog(
@@ -151,11 +150,10 @@ class _FavouritePostsState extends State<FavouritePosts> {
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
                     time: "${compareDate(postData['dateCreated'])} ago",
-                    likes: "${postData['video']['numOfLikes']}",
+                    likesCount: postData['video']['numOfLikes'],
                     views: "${postData['video']['numOfViews']}",
                     subscribers: "${postData['numOfSubscribers']}",
-                    videoDuration: "",
-                    comments: commentsList);
+                    videoDuration: "");
 
               if (u['postType'] == "Image")
                 newBlog = new Blog(
@@ -169,10 +167,9 @@ class _FavouritePostsState extends State<FavouritePosts> {
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
                   time: "${compareDate(postData['dateCreated'])} ago",
-                  likes: "${postData['likesCount']}",
+                  likesCount: postData['likesCount'],
                   views: null,
                   subscribers: "${postData['numOfSubscribers']}",
-                  comments: commentsList,
                 );
 
               var isFavouritejsonData = jsonDecode(isFavouriteData.body);

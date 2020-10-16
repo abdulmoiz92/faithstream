@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:async/async.dart';
 import 'package:faithstream/homescreen/components/your_blogs.dart';
+import 'package:faithstream/main.dart';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/channel.dart';
+import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/model/donation.dart';
+import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/searchscreens/components/search_suggestions.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
@@ -25,9 +30,16 @@ class Search extends StatefulWidget {
 class _SearchState extends State<Search> with TickerProviderStateMixin {
   String memberId;
   String userToken;
+  String profileImage;
   bool seearchMode = false;
   bool showChannels = false;
+  bool isPostSelected = true;
+  bool isTrendingSelected = false;
+  bool isChannelsSelected = false;
+  FocusNode searchFocus = new FocusNode();
   TextEditingController searchController = new TextEditingController();
+  final AsyncMemoizer _memoizer = AsyncMemoizer();
+  StreamController stream = new StreamController();
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +59,17 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
                   Container(
                     width: MediaQuery.of(context).size.width * 0.45,
                     child: TextField(
-                      autofocus: true,
-                      autocorrect: true,
+                      autofocus: false,
+                      focusNode: searchFocus,
                       controller: searchController,
+                      onChanged: (_) {
+                        if (seearchMode == true &&
+                            searchController.text.isNotEmpty) {
+                          Debouncer(milliseconds: 1000).run(() {getPostSearchResults(searchController.text);});
+                          Debouncer(milliseconds: 1000).run(() {getTrendingSearchResults(searchController.text);});
+                          Debouncer(milliseconds: 1000).run(() {getChannelSearchResults(searchController.text);});
+                        }
+                      },
                       decoration: InputDecoration(
                           labelText: "Type To Search",
                           labelStyle: TextStyle(color: Color(0xFAC9CAD1)),
@@ -66,29 +86,23 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
               color: Colors.red,
               onPressed: () {
                 setState(() {
+                  searchFocus.unfocus();
+                  searchController.clear();
                   seearchMode = false;
                 });
               },
             ),
+          if(seearchMode == false)
           IconButton(
             icon: Icon(Icons.search),
             color: Colors.red,
-            onPressed: seearchMode == false
-                ? () {
+            onPressed:() {
                     setState(() {
+                      searchFocus.requestFocus();
                       seearchMode = true;
+
                     });
                   }
-                : () {
-                    if (seearchMode == true &&
-                        searchController.text.isNotEmpty) {
-                      getPostSearchResults(searchController.text);
-                      getChannelSearchResults(searchController.text);
-                    }
-                    setState(() {
-                      seearchMode = false;
-                    });
-                  },
           ),
         ],
         backgroundColor: Colors.white,
@@ -102,31 +116,93 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: EdgeInsets.only(right: 8.0),
-                    child: Column(
-                      children: <Widget>[
-                        Switch(
-                          value: showChannels,
-                          onChanged: (value) {
-                            setState(() {
-                              showChannels = value;
-                            });
-                          },
-                          activeColor: Colors.white,
-                          inactiveTrackColor: Colors.red,
-                          inactiveThumbColor: Colors.white,
-                          activeTrackColor: Colors.red,
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                  child: Row(
+                    children: <Widget>[
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            isChannelsSelected = false;
+                            isPostSelected = true;
+                            isTrendingSelected = false;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                              color: isPostSelected == true ? Colors.red : null,
+                              border: Border.all(color: Colors.red, width: 1),
+                              borderRadius: BorderRadius.circular(25)),
+                          child: Center(
+                            child: Text(
+                              "Posts",
+                              style: TextStyle(
+                                  color: isPostSelected == true
+                                      ? Colors.white
+                                      : Colors.red),
+                            ),
+                          ),
                         ),
-                        Padding(
-                          padding: EdgeInsets.only(top: 2.0),
-                          child: Text(
-                              showChannels == false ? "Posts" : "Channels"),
+                      ),
+                      Spacer(),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            isChannelsSelected = false;
+                            isPostSelected = false;
+                            isTrendingSelected = true;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                              color: isTrendingSelected == true
+                                  ? Colors.red
+                                  : null,
+                              border: Border.all(color: Colors.red, width: 1),
+                              borderRadius: BorderRadius.circular(25)),
+                          child: Center(
+                            child: Text(
+                              "Trending",
+                              style: TextStyle(
+                                  color: isTrendingSelected == true
+                                      ? Colors.white
+                                      : Colors.red),
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Spacer(),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            isChannelsSelected = true;
+                            isPostSelected = false;
+                            isTrendingSelected = false;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                              color: isChannelsSelected == true
+                                  ? Colors.red
+                                  : null,
+                              border: Border.all(color: Colors.red, width: 1),
+                              borderRadius: BorderRadius.circular(25)),
+                          child: Center(
+                            child: Text(
+                              "Channels",
+                              style: TextStyle(
+                                  color: isChannelsSelected == true
+                                      ? Colors.white
+                                      : Colors.red),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Container(
@@ -134,12 +210,19 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
                     height: constraints.maxHeight * 0.85,
                     margin: EdgeInsets.only(top: 8.0),
                     child: SearchSuggestions(
-                      searchResults: showChannels == true
-                          ? null
-                          : Provider.of<BlogProvider>(context).searchBlogs,
-                      channelSearchResults: showChannels == false ? null : Provider.of<BlogProvider>(context).searchChannels,
+                      searchResults: isPostSelected == true
+                          ? Provider.of<BlogProvider>(context).searchBlogs
+                          : null,
+                      channelSearchResults: isChannelsSelected == true
+                          ? Provider.of<BlogProvider>(context).searchChannels
+                          : null,
+                      trendingSearchResults: isTrendingSelected == true
+                          ? Provider.of<BlogProvider>(context).searchTrending
+                          : null,
+                      searchFocusNode: searchFocus,
                       userToken: userToken,
                       memberId: memberId,
+                      profileImage: profileImage,
                     )),
               ],
             ),
@@ -151,8 +234,15 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
 
   @override
   void initState() {
-    getData();
     super.initState();
+    getData();
+  }
+
+
+  @override
+  void dispose() {
+    searchFocus.dispose();
+    super.dispose();
   }
 
   Future<SharedPreferences> getData() async {
@@ -162,21 +252,24 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
       setState(() {
         userToken = prefs.getString(sph.user_token);
         memberId = prefs.getString(sph.member_id);
+        profileImage = prefs.getString(sph.profile_image);
       });
     Provider.of<BlogProvider>(context).resetSearchBlog();
+    Provider.of<BlogProvider>(context).resetTrendingSearch();
+    Provider.of<BlogProvider>(context).resetChannelSearch();
   }
 
   Future<void> getChannelSearchResults(String query) async {
+    Provider.of<BlogProvider>(context).resetChannelSearch();
     var channelData = await http.get(
-        "http://api.faithstreams.net/api/Member/GetChannelsByKeyword/$query/$memberId",
+        "$baseAddress/api/Member/GetChannelsByKeyword/$query/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     if (channelData.body.isNotEmpty) {
       var channelDataJson = json.decode(channelData.body);
       if (channelDataJson['data'] != null) {
-        Provider.of<BlogProvider>(context).resetSearchBlog();
+        Provider.of<BlogProvider>(context).resetChannelSearch();
         for (var u in channelDataJson['data']) {
-          Provider.of<BlogProvider>(context).resetChannelSearch();
           if (channelDataJson['data'] == []) continue;
           Channel newChannel = new Channel(id: u['id'], channelName: u['name']);
           Provider.of<BlogProvider>(context).addChannelSearch = newChannel;
@@ -186,13 +279,53 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> getPostSearchResults(String query) async {
+  Future<void> getTrendingSearchResults(String query) async {
+    Provider.of<BlogProvider>(context).resetTrendingSearch();
     var channelData = await http.get(
-        "http://api.faithstreams.net/api/Member/SearchContents/$query",
+        "$baseAddress/api/Member/GetVideosByKeyword/$query/$memberId",
+        headers: {"Authorization": "Bearer $userToken"});
+
+    if (channelData.body.isNotEmpty) {
+      var channelDataJson = json.decode(channelData.body);
+      if (channelDataJson['data'] != null) {
+        Provider.of<BlogProvider>(context).resetSearchBlog();
+        for (var t in channelDataJson['data']) {
+          var channelInfo = await http.get(
+              "$baseAddress/api/Channel/GetChannelByID/${t['channelID']}",
+              headers: {"Authorization": "Bearer $userToken"});
+          var channelInfoJson = json.decode(channelInfo.body);
+          if (channelDataJson['data'] == []) continue;
+          TPost newTPost = new TPost(
+              id: t['id'],
+              channelId: t['channelID'],
+              videoId: t['videoID'],
+              videoUrl: t['url'],
+              image: t['thumbnail'],
+              title: t['title'],
+              author: channelInfoJson['data']['name'],
+              date: t['dateUpdated'],
+              authorImage: channelInfoJson['data']['logo'],
+              likes: "${t['numOfLikes']}",
+              subscribers: "${channelInfoJson['data']['numOfSubscribers']}",
+              time: compareDate(t['dateUpdated']),
+              isPaid: t['isPaidContent'],
+              isPurchased: t['isPurchased'],
+              views: "${t['numOfViews']}");
+          Provider.of<BlogProvider>(context).addTrendingSearch = newTPost;
+          setState(() {});
+        }
+      }
+    }
+  }
+
+  Future<void> getPostSearchResults(String query) async {
+    Provider.of<BlogProvider>(context).resetSearchBlog();
+    var channelData = await http.get(
+        "$baseAddress/api/Member/SearchContents/$query",
         headers: {"Authorization": "Bearer $userToken"});
 
     var isFavouriteData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
+        "$baseAddress/api/Post/GetFavoriteTimeLine/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     print("$memberId");
@@ -201,7 +334,6 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
     if (channelData.body.isNotEmpty) {
       var channelDataJson = json.decode(channelData.body);
       if (channelDataJson['data'] != null) {
-        Provider.of<BlogProvider>(context).resetSearchBlog();
         for (var u in channelDataJson['data']) {
           if (channelDataJson['data'] == []) continue;
 
@@ -209,7 +341,7 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
 
           if (u['postType'] == "Event")
             eventData = await http.get(
-                "http://api.faithstreams.net/api/Member/GetEventByID/${u['event']['id']}",
+                "$baseAddress/api/Member/GetEventByID/${u['event']['id']}",
                 headers: {"Authorization": "Bearer $userToken"});
 
           var postData = u;
@@ -224,7 +356,7 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
               authorImage: null,
               date: null,
               time: null,
-              likes: null,
+              likesCount: null,
               views: null,
               subscribers: null);
 
@@ -256,9 +388,10 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
                     authorId: postData['authorID'],
                     author: postData['authorName'],
                     authorImage: postData['authorImage'],
+                    authorImageBytes: null,
                     date: postData['dateCreated'],
                     time: "${compareDate(postData['dateCreated'])} ago",
-                    likes: "${postData['likesCount']}",
+                    likesCount: postData['likesCount'],
                     views: postData['event']['video'] != null
                         ? "${postData['event']['video']['numOfViews']}"
                         : null,
@@ -284,9 +417,10 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
                     authorId: postData['authorID'],
                     author: postData['authorName'],
                     authorImage: postData['authorImage'],
+                    authorImageBytes: null,
                     date: postData['dateCreated'],
                     time: "${compareDate(postData['dateCreated'])} ago",
-                    likes: "${postData['video']['numOfLikes']}",
+                    likesCount: postData['video']['numOfLikes'],
                     views: "${postData['video']['numOfViews']}",
                     subscribers: "${postData['numOfSubscribers']}",
                     videoDuration: "",
@@ -309,9 +443,10 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
                   authorId: postData['authorID'],
                   author: postData['authorName'],
                   authorImage: postData['authorImage'],
+                  authorImageBytes: null,
                   date: postData['dateCreated'],
                   time: "${compareDate(postData['dateCreated'])} ago",
-                  likes: "${postData['likesCount']}",
+                  likesCount: postData['likesCount'],
                   views: null,
                   subscribers: "${postData['numOfSubscribers']}",
                   isDonationRequired: postData['isDonationRequire'],
@@ -340,5 +475,20 @@ class _SearchState extends State<Search> with TickerProviderStateMixin {
         }
       }
     }
+  }
+}
+
+class Debouncer {
+  final int milliseconds;
+  VoidCallback action;
+  Timer _timer;
+
+  Debouncer({this.milliseconds});
+
+  run(VoidCallback action) {
+    if (null != _timer) {
+      _timer.cancel();
+    }
+    _timer = Timer(Duration(milliseconds: milliseconds), action);
   }
 }

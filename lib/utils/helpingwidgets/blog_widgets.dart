@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:async/async.dart';
+import 'package:faithstream/main.dart';
 import 'package:faithstream/model/donation.dart';
 import 'package:faithstream/model/pendingcomment.dart';
 import 'package:faithstream/model/pendingfavourite.dart';
@@ -12,6 +12,7 @@ import 'package:faithstream/singlepost/single_channel.dart';
 import 'package:faithstream/singlepost/single_image.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/ProviderUtils/pending_provider.dart';
+import 'package:faithstream/utils/custom_modal.dart' as bs;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
@@ -44,7 +45,8 @@ class AuthorInfo extends StatefulWidget {
   _AuthorInfoState createState() => _AuthorInfoState();
 }
 
-class _AuthorInfoState extends State<AuthorInfo> {
+class _AuthorInfoState extends State<AuthorInfo>
+    with AutomaticKeepAliveClientMixin {
 
   @override
   Widget build(BuildContext context) {
@@ -66,18 +68,25 @@ class _AuthorInfoState extends State<AuthorInfo> {
               ),
               null,
               Colors.black,
-              authorImageBytes: Provider
-                  .of<BlogProvider>(context)
-                  .allBlogs[widget.index].authorImageBytes,
-              onTap: () =>
-                  Navigator.push(context, MaterialPageRoute(
-                      builder: (cntx) =>
-                          SingleChannel(
-                              widget.allBlogs[widget.index].authorId)))),
+              id: widget.allBlogs[widget.index].authorId.toString(),
+              authorImageBytes: widget.allBlogs[widget.index].authorImageBytes,
+              onTap: () {
+                bs.showModalBottomSheet(context: context,
+                    builder: (cntx) =>
+                        SingleChannel(
+                            widget.allBlogs[widget.index].authorId),
+                    isScrollControlled: true,
+                    isDismissible: false,
+                    enableDrag: false,
+                    barrierColor: Colors.white.withOpacity(0));
+              },
+              internet: Provider
+                  .of<PendingRequestProvider>(context)
+                  .internet),
         ),
         /*Spacer(),
-        if (widget.allBlogs[widget.index].isTicketAvailable ==
-            true */ /* && widget.allBlogs[widget.index].isPast != true */ /*)
+        if (allBlogs[index].isTicketAvailable ==
+            true */ /* && allBlogs[index].isPast != true */ /*)
           Padding(
             padding: EdgeInsets.only(right: 8.0),
             child: GestureDetector(
@@ -93,8 +102,8 @@ class _AuthorInfoState extends State<AuthorInfo> {
                                 .height * 0.7,
                             margin: EdgeInsets.only(top: 20),
                             child: BuyTicketsUI(
-                                widget.userToken,
-                                widget.allBlogs[widget.index])));
+                                userToken,
+                                allBlogs[index])));
               },
               child: Icon(
                 Icons.loyalty,
@@ -102,10 +111,10 @@ class _AuthorInfoState extends State<AuthorInfo> {
               ),
             ),
           ),
-        if (widget.allBlogs[widget.index].isDonationRequired == true)
+        if (allBlogs[index].isDonationRequired == true)
           GestureDetector(
             onTap: () {
-              widget.allBlogs[widget.index].donations.length == 0
+              allBlogs[index].donations.length == 0
                   ? showModalBottomSheet(
                   context: context,
                   builder: (cntx) => DonationModalSingle())
@@ -113,7 +122,7 @@ class _AuthorInfoState extends State<AuthorInfo> {
                   context: context,
                   builder: (cntx) =>
                       DonationModal(
-                          widget.allBlogs[widget.index].donations));
+                          allBlogs[index].donations));
             },
             child: Padding(
               padding: EdgeInsets.only(right: 8.0),
@@ -134,27 +143,51 @@ class _AuthorInfoState extends State<AuthorInfo> {
               Provider
                   .of<BlogProvider>(context)
                   .setIsPostFavourite = widget.allBlogs[widget.index].postId;
-              bool internet = await hasInternet();
-              if(internet == false)
+              bool internet = Provider
+                  .of<PendingRequestProvider>(context)
+                  .internet;
+              if (internet == false)
                 Provider.of<BlogProvider>(context).getIsPostFavourtite(
                     widget.allBlogs[widget.index].postId) == 0
-                    ? Provider.of<PendingRequestProvider>(context).addPendingRemoveFavourite = new PendingFavourite(userToken: widget.userToken,memberId: widget.memberId,createdOn: DateTime.now(),updatedOn: DateTime.now(),blogId: widget.allBlogs[widget.index].postId) :
-              Provider.of<PendingRequestProvider>(context).addPendingFavourite = new PendingFavourite(userToken: widget.userToken,memberId: widget.memberId,createdOn: DateTime.now(),updatedOn: DateTime.now(),blogId: widget.allBlogs[widget.index].postId);
-              if(internet == false)
+                    ? Provider
+                    .of<PendingRequestProvider>(context)
+                    .addPendingRemoveFavourite = new PendingFavourite(
+                    userToken: widget.userToken,
+                    memberId: widget.memberId,
+                    createdOn: DateTime.now(),
+                    updatedOn: DateTime.now(),
+                    blogId: widget.allBlogs[widget.index].postId) :
+                Provider
+                    .of<PendingRequestProvider>(context)
+                    .addPendingFavourite = new PendingFavourite(
+                    userToken: widget.userToken,
+                    memberId: widget.memberId,
+                    createdOn: DateTime.now(),
+                    updatedOn: DateTime.now(),
+                    blogId: widget.allBlogs[widget.index].postId);
+              if (internet == false)
                 Provider.of<BlogProvider>(context).getIsPostFavourtite(
                     widget.allBlogs[widget.index].postId) == 0
-                    ? sph.savePosts(sph.pendingremovefavourite_requests, Provider.of<PendingRequestProvider>(context).pendingRemoveFavourites)
-                    : sph.savePosts(sph.pendingfavourite_requests, Provider.of<PendingRequestProvider>(context).pendingFavourites);
-              if(internet == true)
-              Provider.of<BlogProvider>(context).getIsPostFavourtite(
-                  widget.allBlogs[widget.index].postId) == 0
-                  ? removeFromFavourite(context, widget.userToken,
-                  widget.memberId, widget.blog.postId)
-                  : addToFavourite(context, widget.userToken,
-                  widget.memberId, widget.blog.postId);
+                    ? sph.savePosts(
+                    sph.pendingremovefavourite_requests, Provider
+                    .of<PendingRequestProvider>(context)
+                    .pendingRemoveFavourites)
+                    : sph.savePosts(sph.pendingfavourite_requests, Provider
+                    .of<PendingRequestProvider>(context)
+                    .pendingFavourites);
+              if (internet == true)
+                Provider.of<BlogProvider>(context).getIsPostFavourtite(
+                    widget.allBlogs[widget.index].postId) == 0
+                    ? removeFromFavourite(context, widget.userToken,
+                    widget.memberId, widget.blog.postId)
+                    : addToFavourite(context, widget.userToken,
+                    widget.memberId, widget.blog.postId);
             },
             child:
-            Icon(Icons.star,
+            Icon(Provider.of<BlogProvider>(context).getIsPostFavourtite(
+                widget.allBlogs[widget.index].postId) == 1
+                ? Icons.turned_in
+                : Icons.turned_in_not,
               color: Provider.of<BlogProvider>(context).getIsPostFavourtite(
                   widget.allBlogs[widget.index].postId) == 1
                   ? Colors.red
@@ -166,10 +199,15 @@ class _AuthorInfoState extends State<AuthorInfo> {
     );
   }
 
+
   @override
   void initState() {
     super.initState();
   }
+
+  @override
+  // TODO: implement wantKeepAlive
+  bool get wantKeepAlive => true;
 }
 
 class LikeShareComment extends StatefulWidget {
@@ -187,72 +225,202 @@ class LikeShareComment extends StatefulWidget {
   _LikeShareCommentState createState() => _LikeShareCommentState();
 }
 
-class _LikeShareCommentState extends State<LikeShareComment> {
-  StreamController controller = new StreamController.broadcast();
+class _LikeShareCommentState extends State<LikeShareComment> with ChangeNotifier {
+  StreamController likesController;
+  StreamController commentController;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: widget.constraints.maxWidth * 0.6,
+      width: widget.constraints.maxWidth * 1,
       padding: EdgeInsets.symmetric(
-          horizontal: widget.constraints.maxWidth * 0.03,
+          horizontal: widget.constraints.maxWidth * 0.07,
           vertical: widget.constraints.maxHeight * 0.02),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
-          buildIconText(context, "Like", Icons.thumb_up, 3.0,
-              Provider.of<
-                  BlogProvider>(context).getIsPostLiked(
-                  widget.allBlogs[widget.index].postId) == 1
-                  ? Colors.red
-                  : Colors.black87,
-              onTap: () async {
-                SharedPreferences prefs = await SharedPreferences.getInstance();
-                SharedPrefHelper sph = SharedPrefHelper();
-                BlogProvider provider = Provider.of<BlogProvider>(context);
-                provider.setIsPostLiked = widget.allBlogs[widget.index].postId;
-                AssetsAudioPlayer.playAndForget(
-                  Audio("assets/audio/likesound.mp3"),
-                );
-                bool internet = await hasInternet();
-                print(internet);
-                print(await sph.readPosts(sph.pendinglikes_requests));
-                if(internet == false) {
-                  Provider.of<PendingRequestProvider>(context).addPendingLike = new PendingLike(userToken: widget.userToken,memberId: widget.memberId,createdOn: DateTime.now(),updatedOn: DateTime.now(),blogId: widget.allBlogs[widget.index].postId);
-                  sph.savePosts(sph.pendinglikes_requests, Provider.of<PendingRequestProvider>(context).pendingLikes);
-                }
-                if(internet == true)
-                likePost(
+          StreamBuilder(
+              stream: Stream.periodic(Duration(seconds: 2)).asyncMap((event) => getLikeCount()),
+              builder: (context, snapshot) {
+                return buildIconColumnText(context,
+                    "${Provider.of<BlogProvider>(globalContext).getPostLikedCounts(
+                        widget.allBlogs[widget.index].postId)} ${Provider.of<
+                        BlogProvider>(globalContext).getPostLikedCounts(
+                        widget.allBlogs[widget.index].postId) == 1
+                        ? "Like"
+                        : "Likes"}", Provider.of<
+                        BlogProvider>(globalContext).getIsPostLiked(
+                        widget.allBlogs[widget.index].postId) == 1 ?
+                    Icons.favorite : Icons.favorite_border, 3.0,
+                    Colors.black87,
+                    iconColor: Provider.of<
+                        BlogProvider>(globalContext).getIsPostLiked(
+                        widget.allBlogs[widget.index].postId) == 1
+                        ? Colors.red
+                        : Colors.black87,
+                    onTap: () {
+                      SharedPrefHelper sph = SharedPrefHelper();
+                      BlogProvider provider = Provider.of<BlogProvider>(
+                          context);
+                      provider.setIsPostLiked =
+                          widget.allBlogs[widget.index].postId;
+                      Provider.of<BlogProvider>(globalContext).setLikingPostInProcess = true;
+                      Provider.of<
+                          BlogProvider>(context).getIsPostLiked(
+                          widget.allBlogs[widget.index].postId) == 1 ? provider
+                          .increaseLikesCount(
+                          widget.allBlogs[widget.index].postId) : provider
+                          .decreaseLikesCount(
+                          widget.allBlogs[widget.index].postId);
+                      AssetsAudioPlayer.playAndForget(
+                        Audio("assets/audio/likesound.mp3"),
+                      );
+                      bool internet = Provider
+                          .of<PendingRequestProvider>(context)
+                          .internet;
+                      if (internet == false) {
+                        Provider
+                            .of<PendingRequestProvider>(context)
+                            .addPendingLike = new PendingLike(
+                            userToken: widget.userToken,
+                            memberId: widget.memberId,
+                            createdOn: DateTime.now(),
+                            updatedOn: DateTime.now(),
+                            blogId: widget.allBlogs[widget.index].postId);
+                        sph.savePosts(sph.pendinglikes_requests, Provider
+                            .of<PendingRequestProvider>(context)
+                            .pendingLikes);
+                        Provider.of<BlogProvider>(context).setLikingPostInProcess = false;
+                      }
+                      if (internet == true) {
+                        likePost(
+                            context,
+                            widget.userToken,
+                            "${widget.memberId}",
+                            DateTime.now(),
+                            DateTime.now(),
+                                () {},
+                            widget.allBlogs[widget.index].postId);
+                        setState(() {});
+                      }
+                    });
+              }
+          ),
+          Spacer(),
+          StreamBuilder(
+              stream: Stream.periodic(Duration(seconds: 2)).asyncMap((event) => getCommentCount()),
+              builder: (context, snapshot) {
+                return buildIconColumnText(
                     context,
-                    widget.userToken,
-                    "${widget.memberId}",
-                    DateTime.now(),
-                    DateTime.now(),
-                        () {},
-                    widget.allBlogs[widget.index].postId);
-              }),
+                    "${Provider.of<BlogProvider>(globalContext).getPostCommentCounts(widget.allBlogs[widget.index].postId)} Comments",
+                    Icons.mode_comment, 3.0, Colors.black87,
+                    onTap: () {
+                      showModalBottomSheet(
+                          isScrollControlled: true,
+                          context: context,
+                          builder: (cntx) =>
+                              CommentModal(widget.allBlogs, widget.index,
+                                  widget.userToken, widget.memberId));
+                    });
+              }
+          ),
           Spacer(),
-          buildIconText(context, "Share", Icons.share, 3.0, Colors.black87),
-          Spacer(),
-          buildIconText(context, "comment", Icons.sms, 3.0, Colors.black87,
-              onTap: () {
-                showModalBottomSheet(
-                    isScrollControlled: true,
-                    context: context,
-                    builder: (cntx) =>
-                        CommentModal(widget.allBlogs, widget.index,
-                            widget.userToken, widget.memberId));
-              }),
+          buildIconColumnText(
+              context, "Share", Icons.share, 3.0, Colors.black87),
         ],
       ),
     );
   }
 
+
   @override
   void initState() {
     super.initState();
+    likesController = new StreamController();
+    commentController = new StreamController();
   }
+
+  dynamic getCommentCount() async {
+    final data = await http.get(
+        "$baseAddress/api/Post/GetPostCommentsCount/${widget.allBlogs[widget
+            .index].postId}",
+        headers: {"Authorization": "Bearer ${widget.userToken}"});
+    var dataJson = json.decode(data.body);
+    if(dataJson['data'] != Provider.of<BlogProvider>(context).getPostCommentCounts(widget.allBlogs[widget.index].postId)) {
+      Provider.of<BlogProvider>(globalContext).setCommentCount(
+          dataJson['data'], widget.allBlogs[widget.index].postId);
+      commentController.add(
+          Provider.of<BlogProvider>(globalContext).getPostCommentCounts(
+              widget.allBlogs[widget.index].postId));
+    }
+  }
+
+  dynamic getLikeCount() async {
+    final data = await http.get(
+        "$baseAddress/api/Post/GetPostByID/${widget.allBlogs[widget.index]
+            .postId}",
+        headers: {"Authorization": "Bearer ${widget.userToken}"});
+    var dataJson = json.decode(data.body);
+    if(dataJson['data']['likesCount'] != Provider.of<BlogProvider>(globalContext).getPostLikedCounts(widget.allBlogs[widget.index].postId)) {
+      Provider.of<BlogProvider>(globalContext).setLikesCount(dataJson['data']['likesCount'],widget.allBlogs[widget.index].postId);
+      likesController.add(Provider.of<BlogProvider>(globalContext).getPostLikedCounts(widget.allBlogs[widget.index].postId));
+    }
+  }
+}
+
+class PostBottomComment extends StatefulWidget {
+  BoxConstraints constraints;
+
+  PostBottomComment(this.constraints);
+
+  @override
+  _PostBottomCommentState createState() => _PostBottomCommentState();
+}
+
+class _PostBottomCommentState extends State<PostBottomComment> {
+  String profileImage = null;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(width: widget.constraints.maxWidth * 0.85,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: widget.constraints.maxWidth * 0.015,
+              vertical: widget.constraints.maxHeight * 0.025),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              Container(width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(50),
+                    image: DecorationImage(
+                        image: profileImage == null ? AssetImage(
+                            "assets/images/test.jpeg") : NetworkImage(
+                            profileImage), fit: BoxFit.fill)),),
+              Padding(padding: EdgeInsets.only(left: 16.0),
+                child: Text(
+                  "Write a Comment", style: TextStyle(color: Colors.black54),),)
+            ],),),),);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getData();
+  }
+
+  Future<void> getData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    SharedPrefHelper sph = new SharedPrefHelper();
+    if (mounted) setState(() {
+      profileImage = prefs.getString(sph.profile_image);
+    });
+  }
+
 }
 
 class CommentModal extends StatefulWidget {
@@ -283,7 +451,6 @@ class _CommentModalState extends State<CommentModal> {
   @override
   void initState() {
     getData();
-    getComments();
   }
 
   Future<SharedPreferences> getData() async {
@@ -298,9 +465,9 @@ class _CommentModalState extends State<CommentModal> {
     Provider.of<BlogProvider>(context).resetComments();
   }
 
-  Future getComments() async {
+  void getComments() async {
     var commentData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetPostComments/${widget
+        "$baseAddress/api/Post/GetPostComments/${widget
             .allBlogs[widget.index].postId}",
         headers: {"Authorization": "Bearer ${widget.userToken}"});
     if (commentData.body.isNotEmpty) {
@@ -308,20 +475,24 @@ class _CommentModalState extends State<CommentModal> {
       if (commentDataJson['data'] != null) {
         if (mounted)
           for (var c in commentDataJson['data']) {
-            var userData = await http.get(
-                "http://api.faithstreams.net/api/Member/GetMemberProfile/${c['memberID']}",
-                headers: {"Authorization": "Bearer ${widget.userToken}"});
+            /*var userData = await http.get(
+                "$baseAddress/api/Member/GetMemberProfile/${c['memberID']}",
+                headers: {"Authorization": "Bearer ${widget.userToken}"});*/
+            /* json.decode(userData.body)['data'] == null
+                      ? null
+                      : json.decode(userData.body)['data']
+                  ['profileImage'] */
             if (commentDataJson['data'] == []) continue;
             if (mounted) {
               Comment newComment = new Comment(
                   commentId: c['id'],
                   commentMemberId: c['memberID'],
-                  authorImage: json.decode(userData.body)['data']
-                  ['profileImage'],
+                  authorImage: null,
                   commentText: c['commentText'],
                   authorName: c['commentedBy'],
                   time: "${compareDate(c['dateCreated'])}");
-              Provider.of<BlogProvider>(context).addComment(
+              if(Provider.of<BlogProvider>(globalContext).doesCommentExist(c['id']) == false && Provider.of<BlogProvider>(globalContext).doesCommentExistInDeleteProcess(c['id']) == false)
+              Provider.of<BlogProvider>(globalContext).addComment(
                   newComment);
             }
           }
@@ -370,18 +541,23 @@ class _CommentModalState extends State<CommentModal> {
                           ],
                         ),
                       ),
-                      Container(
-                          key: Key("modallist"),
-                          width: double.infinity,
-                          height: constraints.maxHeight * 0.82,
-                          child: ModalBottom(
-                            scrollingList:
-                            Provider.of<BlogProvider>(context)
-                                .getCommentsList(),
-                            postId: widget.allBlogs[widget.index].postId,
-                            userToken: widget.userToken,
-                            memberId: widget.memberId,
-                          )),
+                      StreamBuilder(
+                        stream: Stream.periodic(Duration(seconds: 2)).asyncMap((event) => getComments()),
+                        builder: (context, snapshot) {
+                          return Container(
+                              key: Key("modallist"),
+                              width: double.infinity,
+                              height: constraints.maxHeight * 0.82,
+                              child: ModalBottom(
+                                scrollingList:
+                                Provider.of<BlogProvider>(context)
+                                    .getCommentsList(),
+                                postId: widget.allBlogs[widget.index].postId,
+                                userToken: widget.userToken,
+                                memberId: widget.memberId,
+                              ));
+                        }
+                      ),
                     ],
                   ),
                 ),
@@ -425,15 +601,16 @@ class _CommentModalState extends State<CommentModal> {
                                 builder: (cntx, _setState) {
                                   return GestureDetector(
                                     onTap: () async {
-                                      bool internet = await hasInternet();
+                                      bool internet = Provider
+                                          .of<PendingRequestProvider>(context)
+                                          .internet;
                                       if (commentText.isNotEmpty) {
                                         Comment newComment = new Comment(
                                             commentMemberId: int.parse(
                                                 widget.memberId),
-                                            temopraryId: "temporary${Provider
-                                                .of<BlogProvider>(context)
-                                                .getCommentsList()
-                                                .length + 1}",
+                                            temopraryId: "temporary${widget
+                                                .allBlogs[widget.index]
+                                                .postId}",
                                             authorImage: profileImage,
                                             commentText: commentController.value
                                                 .text,
@@ -441,32 +618,56 @@ class _CommentModalState extends State<CommentModal> {
                                             time: compareDate(DateTime.now()
                                                 .toIso8601String()));
                                         Provider.of<BlogProvider>(context)
-                                            .addComment(newComment);
+                                            .addComment(newComment,postId: widget.allBlogs[widget.index].postId);
+                                        Provider.of<BlogProvider>(context).setAddingCommentInProcess = true;
+                                        /*Provider.of<BlogProvider>(context)
+                                            .setPostComment(
+                                            widget.allBlogs[widget.index]
+                                                .postId, newComment);*/
 
-                                        if(internet == false) {
-                                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                                        if (internet == false) {
                                           SharedPrefHelper sph = SharedPrefHelper();
-                                          Provider.of<PendingRequestProvider>(context).addPendingComments = new PendingComment(userToken: widget.userToken, memberId: widget.memberId, createdOn: DateTime.now(), updatedOn: DateTime.now(), postId: widget
-                                              .allBlogs[widget.index].postId, tempId: "temporary${Provider
-                                              .of<BlogProvider>(context)
-                                              .getCommentsList()
-                                              .length + 1}",commentText: commentController.text,commentedBy: fullName);
-                                          sph.savePosts(sph.pendingcomment_requests, Provider.of<PendingRequestProvider>(context).pendingComments);
+                                          Provider
+                                              .of<PendingRequestProvider>(
+                                              context)
+                                              .addPendingComments =
+                                          new PendingComment(
+                                              userToken: widget.userToken,
+                                              memberId: widget.memberId,
+                                              createdOn: DateTime.now(),
+                                              updatedOn: DateTime.now(),
+                                              postId: widget
+                                                  .allBlogs[widget.index]
+                                                  .postId,
+                                              tempId: "temporary${widget
+                                                  .allBlogs[widget.index]
+                                                  .postId}",
+                                              commentText: commentController
+                                                  .text,
+                                              commentedBy: fullName);
+                                          sph.savePosts(
+                                              sph.pendingcomment_requests,
+                                              Provider
+                                                  .of<PendingRequestProvider>(
+                                                  context)
+                                                  .pendingComments);
+                                          Provider.of<BlogProvider>(context).setAddingCommentInProcess = false;
                                         }
 
-                                        if(internet == true)
-                                        commentOnPost(
-                                            context,
-                                            widget.userToken,
-                                            "${widget.memberId}",
-                                            postId: widget
-                                                .allBlogs[widget.index].postId,
-                                            commentText:
-                                            commentController.value.text,
-                                            createdOn: DateTime.now(),
-                                            updatedOn: DateTime.now(),
-                                            tempId: newComment.temopraryId
-                                        );
+                                        if (internet == true)
+                                          commentOnPost(
+                                              context,
+                                              widget.userToken,
+                                              "${widget.memberId}",
+                                              postId: widget
+                                                  .allBlogs[widget.index]
+                                                  .postId,
+                                              commentText:
+                                              commentController.value.text,
+                                              createdOn: DateTime.now(),
+                                              updatedOn: DateTime.now(),
+                                              tempId: newComment.temopraryId
+                                          );
                                         commentController.clear();
                                         setState(() {
                                           commentText = "";
@@ -513,13 +714,16 @@ class ImagePostWidget extends StatefulWidget {
 class _ImagePostWidgetState extends State<ImagePostWidget>
     with AutomaticKeepAliveClientMixin {
   bool internet;
+
   Image memoryImage;
+
   final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   @override
   Widget build(BuildContext context) {
-     if(widget.allBlogs[widget.index].imageBytes != null)
-    _memoizer.runOnce(() => preCacheTheImage());
+    super.build(context);
+    if (widget.allBlogs[widget.index].imageBytes != null)
+      _memoizer.runOnce(() => preCacheTheImage(context));
     return Column(
       children: <Widget>[
         Container(
@@ -548,28 +752,35 @@ class _ImagePostWidgetState extends State<ImagePostWidget>
         Center(
           child: GestureDetector(
             onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (cntx) =>
-                          SingleImage(
-                              widget.allBlogs[widget.index].image,
-                              widget.allBlogs[widget.index].imageBytes)));
+              showModalBottomSheet(context: context,
+                  builder: (cntx) =>
+                      SingleImage(
+                          widget.allBlogs[widget.index].image,
+                          widget.allBlogs[widget.index].imageBytes),
+                  backgroundColor: Colors.black,
+                  isScrollControlled: true,
+                  isDismissible: false,
+                  enableDrag: false);
             },
             child: Container(
-              width: widget.constraints.maxWidth * 0.9,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25)),
+              width: widget.constraints.maxWidth * 0.85,
               child: widget.allBlogs[widget.index].image == null
                   ? Image.asset(
                 "assets/images/laptop.png",
                 fit: BoxFit.fitHeight,
               )
                   : widget.allBlogs[widget.index].imageBytes == null
-                  ? FadeInImage.assetNetwork(
-                placeholder: "assets/images/loading.gif",
-                image: widget.allBlogs[widget.index].image,
-                fit: BoxFit.fill,
-              )
-                  : memoryImage,
+                  ? ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: FadeInImage.assetNetwork(
+                  placeholder: "assets/images/loading.gif",
+                  image: widget.allBlogs[widget.index].image,
+                  fit: BoxFit.fill,
+                ),
+              ) : ClipRRect(
+                  borderRadius: BorderRadius.circular(15), child: memoryImage),
             ),
           ),
         ),
@@ -577,122 +788,15 @@ class _ImagePostWidgetState extends State<ImagePostWidget>
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  Future<void> preCacheTheImage() async {
+  Future<void> preCacheTheImage(BuildContext context) async {
     memoryImage = Image.memory(
       widget.allBlogs[widget.index].imageBytes, fit: BoxFit.fill,);
     precacheImage(memoryImage.image, context);
   }
 
   @override
+  // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
-}
-
-class TicketBuyWidget extends StatelessWidget {
-  final BoxConstraints constraints;
-
-  TicketBuyWidget(this.constraints);
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(height: constraints.maxHeight * 0.02),
-          GestureDetector(
-            onTap: () {},
-            child: Container(
-              margin:
-              EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.04),
-              width: constraints.maxWidth * 0.3,
-              color: Colors.red,
-              padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-              child: Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.loyalty,
-                    color: Colors.white,
-                    size: 15,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4.0),
-                    child: Text(
-                      "Buy Tickets",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-}
-
-class DonationWidget extends StatelessWidget {
-  final BoxConstraints constraints;
-  final List<Donation> donations;
-  final int isEventVideo;
-
-  DonationWidget(this.constraints, this.donations, {this.isEventVideo});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(height: constraints.maxHeight * 0.02),
-          GestureDetector(
-            onTap: () {
-              donations.length == 0
-                  ? showModalBottomSheet(
-                  context: context,
-                  builder: (cntx) => DonationModalSingle())
-                  : showModalBottomSheet(
-                  context: context,
-                  builder: (cntx) => DonationModal(donations));
-            },
-            child: Container(
-              margin: isEventVideo == 1
-                  ? EdgeInsets.symmetric(
-                  horizontal: constraints.maxWidth * 0.01)
-                  : EdgeInsets.symmetric(
-                  horizontal: constraints.maxWidth * 0.04),
-              width: constraints.maxWidth * 0.25,
-              color: Colors.red,
-              padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-              child: Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.monetization_on,
-                    color: Colors.white,
-                    size: 15,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4.0),
-                    child: Text(
-                      "Donate",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        ],
-      ),
-    );
-  }
 }
 
 class VideoPostWidget extends StatefulWidget {
@@ -712,13 +816,16 @@ class VideoPostWidget extends StatefulWidget {
 class _VideoPostWidgetState extends State<VideoPostWidget>
     with AutomaticKeepAliveClientMixin {
   bool internet;
+
   MemoryImage memoryImage;
+
   final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   @override
   Widget build(BuildContext context) {
-    if(widget.allBlogs[widget.index].imageBytes != null)
-    _memoizer.runOnce(() => preCacheTheImage());
+    super.build(context);
+    if (widget.allBlogs[widget.index].imageBytes != null)
+      _memoizer.runOnce(() => preCacheTheImage(context));
     return Column(
       children: <Widget>[
         Container(
@@ -748,18 +855,22 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
         Center(
           child: widget.allBlogs[widget.index].image != null
               ? GestureDetector(
-            onTap: () =>
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (cntx) =>
-                            SingleBlogPost(
-                              singleBlog: widget.allBlogs[widget.index],
-                            ))),
+            onTap: () {
+              bs.showModalBottomSheet(context: context,
+                  builder: (cntx) =>
+                      SingleBlogPost(
+                        singleBlog: widget.allBlogs[widget.index],
+                      ),
+                  barrierColor: Colors.white.withOpacity(0),
+                  isDismissible: false,
+                  enableDrag: false,
+                  isScrollControlled: true);
+            },
             child: Container(
-              width: widget.constraints.maxWidth * 0.9,
+              width: widget.constraints.maxWidth * 0.85,
               height: widget.constraints.maxHeight * 0.4,
               decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
                 image: DecorationImage(
                     image: widget.allBlogs[widget.index].imageBytes == null
                         ? NetworkImage(widget.allBlogs[widget.index].image)
@@ -814,19 +925,16 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  Future<void> preCacheTheImage() async {
+  Future<void> preCacheTheImage(BuildContext context) async {
     memoryImage = MemoryImage(widget.allBlogs[widget.index].imageBytes);
     precacheImage(memoryImage, context);
   }
 
   @override
+  // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 }
+
 
 class VideoPostAsset extends StatelessWidget {
   final BoxConstraints constraints;
@@ -882,7 +990,6 @@ class EventImagePostWidget extends StatefulWidget {
   final String userToken;
   bool showButton;
   bool isSingleChannel;
-  final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   EventImagePostWidget(this.allBlogs, this.index, this.constraints,
       this.memberId, this.userToken, {this.showButton, this.isSingleChannel});
@@ -894,13 +1001,16 @@ class EventImagePostWidget extends StatefulWidget {
 class _EventImagePostWidgetState extends State<EventImagePostWidget>
     with AutomaticKeepAliveClientMixin {
   bool internet;
+
   Image memoryImage;
+
   final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   @override
   Widget build(BuildContext context) {
-    if(widget.allBlogs[widget.index].imageBytes != null)
-    _memoizer.runOnce(() => preCacheTheImage());
+    super.build(context);
+    if (widget.allBlogs[widget.index].imageBytes != null)
+      _memoizer.runOnce(() => preCacheTheImage(context));
     return Column(
       children: <Widget>[
         Container(
@@ -943,23 +1053,29 @@ class _EventImagePostWidgetState extends State<EventImagePostWidget>
           Center(
             child: GestureDetector(
               onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (cntx) =>
-                            SingleImage(
-                                widget.allBlogs[widget.index].image,
-                                widget.allBlogs[widget.index].imageBytes)));
+                showModalBottomSheet(context: context,
+                    builder: (cntx) =>
+                        SingleImage(
+                            widget.allBlogs[widget.index].image,
+                            widget.allBlogs[widget.index].imageBytes),
+                    backgroundColor: Colors.black,
+                    isScrollControlled: true,
+                    isDismissible: false,
+                    enableDrag: false);
               },
               child: Container(
-                width: widget.constraints.maxWidth * 0.9,
+                width: widget.constraints.maxWidth * 0.85,
                 child: widget.allBlogs[widget.index].imageBytes == null
-                    ? FadeInImage.assetNetwork(
-                  placeholder: "assets/images/loading.gif",
-                  image: widget.allBlogs[widget.index].image,
-                  fit: BoxFit.fill,
+                    ? ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: FadeInImage.assetNetwork(
+                    placeholder: "assets/images/loading.gif",
+                    image: widget.allBlogs[widget.index].image,
+                    fit: BoxFit.fill,
+                  ),
                 )
-                    : memoryImage,
+                    : ClipRRect(borderRadius: BorderRadius.circular(15),
+                    child: memoryImage),
               ),
             ),
           ),
@@ -967,12 +1083,7 @@ class _EventImagePostWidgetState extends State<EventImagePostWidget>
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  Future<void> preCacheTheImage() async {
+  Future<void> preCacheTheImage(BuildContext context) async {
     memoryImage = Image.memory(
       widget.allBlogs[widget.index].imageBytes, fit: BoxFit.fill,);
     precacheImage(memoryImage.image, context);
@@ -1087,22 +1198,27 @@ class EventVideoPostWidget extends StatefulWidget {
 class _EventVideoPostWidgetState extends State<EventVideoPostWidget>
     with AutomaticKeepAliveClientMixin {
   bool internet;
+
   MemoryImage memoryImage;
+
   final AsyncMemoizer _memoizer = AsyncMemoizer();
 
   @override
   Widget build(BuildContext context) {
-    if(widget.allBlogs[widget.index].imageBytes != null)
-    _memoizer.runOnce(() => preCacheTheImage());
+    super.build(context);
+    if (widget.allBlogs[widget.index].imageBytes != null)
+      _memoizer.runOnce(() => preCacheTheImage(context));
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (cntx) =>
-                    SingleBlogPost(
-                      singleBlog: widget.allBlogs[widget.index],
-                    )));
+        bs.showModalBottomSheet(context: context,
+            builder: (cntx) =>
+                SingleBlogPost(
+                  singleBlog: widget.allBlogs[widget.index],
+                ),
+            isScrollControlled: true,
+            enableDrag: false,
+            isDismissible: false,
+            barrierColor: Colors.white.withOpacity(0));
       },
       child: Column(
         children: <Widget>[
@@ -1146,9 +1262,10 @@ class _EventVideoPostWidgetState extends State<EventVideoPostWidget>
           SizedBox(height: widget.constraints.maxHeight * 0.01),
           Center(
             child: Container(
-              width: widget.constraints.maxWidth * 0.9,
+              width: widget.constraints.maxWidth * 0.85,
               height: widget.constraints.maxHeight * 0.4,
               decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
                 image: DecorationImage(
                   image: widget.allBlogs[widget.index].image == null
                       ? AssetImage("assets/images/laptop.png")
@@ -1192,20 +1309,15 @@ class _EventVideoPostWidgetState extends State<EventVideoPostWidget>
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  Future<void> preCacheTheImage() async {
+  Future<void> preCacheTheImage(BuildContext context) async {
     memoryImage = MemoryImage(widget.allBlogs[widget.index].imageBytes);
     precacheImage(memoryImage, context);
   }
 
   @override
+  // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 }
-
 
 class DonateRemindBuy extends StatelessWidget {
   final List<Blog> allBlogs;
@@ -1257,7 +1369,13 @@ class DonateRemindBuy extends StatelessWidget {
                   ? showModalBottomSheet(
                   context: context,
                   isDismissible: false,
-                  builder: (cntx) => DonationModalSingle())
+                  builder: (cntx) =>
+                      DonationModalSingle(
+                        channelName: allBlogs[index].author,
+                        postTitle: allBlogs[index].title,
+                        postType: allBlogs[index].postType,
+                        channelId: allBlogs[index].authorId,
+                        contentId: allBlogs[index].postId,))
                   : showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -1269,7 +1387,12 @@ class DonateRemindBuy extends StatelessWidget {
                             .size
                             .height * 0.6,
                         child: DonationModal(
-                            allBlogs[index].donations),
+                          allBlogs[index].donations,
+                          contentId: allBlogs[index].postId,
+                          postType: allBlogs[index].postType,
+                          channelId: allBlogs[index].authorId,
+                          postTitle: allBlogs[index].title,
+                          channelName: allBlogs[index].author,),
                       ));
             }),
           ),
@@ -1309,10 +1432,18 @@ class DonateRemindBuy extends StatelessWidget {
       ],
     );
   }
-
 }
 
 class DonationModalSingle extends StatefulWidget {
+  String channelName;
+  String postType;
+  String postTitle;
+  int channelId;
+  String contentId;
+
+  DonationModalSingle(
+      {this.channelName, this.postType, this.postTitle, this.channelId, this.contentId});
+
   @override
   _DonationModalSingleState createState() => _DonationModalSingleState();
 }
@@ -1369,7 +1500,15 @@ class _DonationModalSingleState extends State<DonationModalSingle> {
                                 isDismissible: false,
                                 builder: (cntx) =>
                                     PaymentMehodModal(
-                                        double.parse(amountController.text)));
+                                      amount: double.parse(
+                                          amountController.text),
+                                      notes: "You Donated to a ${widget
+                                          .postType} by ${widget
+                                          .channelName} with Title ${widget
+                                          .postTitle}",
+                                      channelId: widget.channelId,
+                                      postType: widget.postType,
+                                      contentId: widget.contentId,));
                           }
                         },
                         child: Icon(
@@ -1392,8 +1531,14 @@ class _DonationModalSingleState extends State<DonationModalSingle> {
 
 class DonationModal extends StatefulWidget {
   List<Donation> donationsList;
+  String channelName;
+  String postType;
+  String postTitle;
+  int channelId;
+  String contentId;
 
-  DonationModal(this.donationsList);
+  DonationModal(this.donationsList,
+      {this.channelName, this.postType, this.postTitle, this.channelId, this.contentId});
 
   @override
   _DonationModalState createState() => _DonationModalState();
@@ -1424,56 +1569,170 @@ class _DonationModalState extends State<DonationModal> {
                     },),),
                   Container(
                     width: double.infinity,
-                    height: constraints.maxHeight * 0.8,
+                    height: constraints.maxHeight * 0.9,
                     child: ListView.builder(
-                        itemCount: widget.donationsList.length + 1,
+                        itemCount: widget.donationsList.length + 2,
                         itemBuilder: (cntx, index) {
                           return StatefulBuilder(
                             builder: (cntx, _setState) {
-                              return index != widget.donationsList.length
-                                  ? RadioListTile(
-                                activeColor: Colors.red,
-                                groupValue: amount,
-                                value: double.parse(
-                                  widget.donationsList[index].denomAmount,
-                                ),
-                                title: Text(
-                                    "\$${widget.donationsList[index]
-                                        .denomAmount}",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                                subtitle: Text(
-                                    "${widget.donationsList[index]
-                                        .denomDescription}"),
-                                onChanged: handleRadioChange,
-                              )
-                                  : RadioListTile(
-                                activeColor: Colors.red,
-                                groupValue: amount,
-                                value: amountController.text == ""
-                                    ? 0.0
-                                    : double.parse(amountController.text),
-                                title: TextField(
-                                  controller: amountController,
-                                  inputFormatters: [
-                                    WhitelistingTextInputFormatter.digitsOnly,
+                              return Container(
+                                margin: EdgeInsets.only(
+                                    top: index == 0 ? 0 : 16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: <Widget>[
+                                    if(index < widget.donationsList.length)
+                                      RadioListTile(
+                                        activeColor: Colors.red,
+                                        groupValue: amount,
+                                        value: double.parse(
+                                          widget.donationsList[index]
+                                              .denomAmount,
+                                        ),
+                                        title: Container(
+                                          width: constraints.maxWidth * 0.75,
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 16),
+                                          color: Colors.red,
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment
+                                                .start,
+                                            crossAxisAlignment: CrossAxisAlignment
+                                                .start,
+                                            children: <Widget>[
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment
+                                                    .start,
+                                                mainAxisAlignment: MainAxisAlignment
+                                                    .start,
+                                                children: <Widget>[
+                                                  Text("Suggested",
+                                                    style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight
+                                                            .bold),),
+                                                  Container(
+                                                    width: constraints
+                                                        .maxWidth * 0.62,
+                                                    padding: EdgeInsets.only(
+                                                        top: 8.0),
+                                                    child: Text(
+                                                      "${widget
+                                                          .donationsList[index]
+                                                          .denomDescription ==
+                                                          null || widget
+                                                          .donationsList[index]
+                                                          .denomDescription
+                                                          .isEmpty ? "" : widget
+                                                          .donationsList[index]
+                                                          .denomDescription}",
+                                                      style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14),),),
+                                                ],),
+                                              Spacer(),
+                                              Text(
+                                                  "\$${widget
+                                                      .donationsList[index]
+                                                      .denomAmount}",
+                                                  style: TextStyle(
+                                                      fontWeight: FontWeight
+                                                          .bold,
+                                                      fontSize: 16,
+                                                      color: Colors.white)),
+                                            ],),),
+                                        onChanged: handleRadioChange,
+                                      ),
+                                    if(index == widget.donationsList.length)
+                                      Container(
+                                        margin: EdgeInsets.only(top: 16),
+                                        child: RadioListTile(
+                                          activeColor: Colors.red,
+                                          groupValue: amount,
+                                          value: amountController.text == ""
+                                              ? 0.0
+                                              : double.parse(
+                                              amountController.text),
+                                          title: TextField(
+                                            controller: amountController,
+                                            inputFormatters: [
+                                              WhitelistingTextInputFormatter
+                                                  .digitsOnly,
+                                            ],
+                                            keyboardType:
+                                            TextInputType.numberWithOptions(
+                                                decimal: false, signed: false),
+                                            decoration: InputDecoration(
+                                              contentPadding:
+                                              EdgeInsets.only(
+                                                  left: 10, right: 10),
+                                              labelText: "Enter Amount Here",
+                                              labelStyle:
+                                              TextStyle(
+                                                  color: Color(0xFAC9CAD1)),
+                                              enabledBorder: UnderlineInputBorder(
+                                                borderSide: BorderSide(
+                                                    color: Color(0xFFEBEAEF)),
+                                              ),
+                                            ),
+                                          ),
+                                          onChanged: handleRadioChange,
+                                        ),
+                                      ),
+                                    if(index == widget.donationsList.length + 1)
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            if (amount != 0.0) {
+                                              Navigator.pop(context);
+                                              showModalBottomSheet(
+                                                  context: context,
+                                                  isDismissible: false,
+                                                  builder: (cntx) =>
+                                                      PaymentMehodModal(
+                                                        amount: amount,
+                                                        notes: "You Donated to a ${widget
+                                                            .postType} by ${widget
+                                                            .channelName} with Title ${widget
+                                                            .postTitle}",
+                                                        channelId: widget
+                                                            .channelId,
+                                                        postType: widget
+                                                            .postType,
+                                                        contentId: widget
+                                                            .contentId,));
+                                            }
+                                          },
+                                          child: Container(
+                                            margin: EdgeInsets.only(
+                                                right: constraints.maxWidth *
+                                                    0.04,
+                                                bottom: constraints.maxHeight *
+                                                    0.05),
+                                            padding:
+                                            EdgeInsets.symmetric(
+                                                horizontal: 8.0, vertical: 6.0),
+                                            decoration: BoxDecoration(
+                                                color: amount == 0.0
+                                                    ? Colors.red.withOpacity(
+                                                    0.3)
+                                                    : Colors.red,
+                                                borderRadius: BorderRadius
+                                                    .circular(25)),
+                                            child: Text(
+                                              "Donate",
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 15),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                   ],
-                                  keyboardType:
-                                  TextInputType.numberWithOptions(
-                                      decimal: false, signed: false),
-                                  decoration: InputDecoration(
-                                    contentPadding:
-                                    EdgeInsets.only(left: 10, right: 10),
-                                    labelText: "Enter Amount Here",
-                                    labelStyle:
-                                    TextStyle(color: Color(0xFAC9CAD1)),
-                                    enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: Color(0xFFEBEAEF)),
-                                    ),
-                                  ),
                                 ),
-                                onChanged: handleRadioChange,
                               );
                             },
                           );
@@ -1481,36 +1740,6 @@ class _DonationModalState extends State<DonationModal> {
                   ),
                 ],
               ),
-              Align(
-                alignment: Alignment.bottomRight,
-                child: GestureDetector(
-                  onTap: () {
-                    if (amount != 0.0) {
-                      Navigator.pop(context);
-                      showModalBottomSheet(
-                          context: context,
-                          isDismissible: false,
-                          builder: (cntx) => PaymentMehodModal(amount));
-                    }
-                  },
-                  child: Container(
-                    margin: EdgeInsets.only(
-                        right: constraints.maxWidth * 0.04,
-                        bottom: constraints.maxHeight * 0.05),
-                    padding:
-                    EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-                    decoration: BoxDecoration(
-                        color: amount == 0.0
-                            ? Colors.red.withOpacity(0.3)
-                            : Colors.red,
-                        borderRadius: BorderRadius.circular(25)),
-                    child: Text(
-                      "Donate",
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                  ),
-                ),
-              )
             ],
           );
         },
@@ -1527,8 +1756,13 @@ class _DonationModalState extends State<DonationModal> {
 
 class PaymentMehodModal extends StatefulWidget {
   double amount;
+  int channelId;
+  String notes;
+  String contentId;
+  String postType;
 
-  PaymentMehodModal(this.amount);
+  PaymentMehodModal(
+      {this.amount, this.notes, this.channelId, this.contentId, this.postType});
 
   @override
   _PaymentMehodModalState createState() => _PaymentMehodModalState();
@@ -1598,7 +1832,13 @@ class _PaymentMehodModalState extends State<PaymentMehodModal> {
                               Container(height: MediaQuery
                                   .of(cntxs)
                                   .size
-                                  .height * 0.7, child: PaypalDetails()));
+                                  .height * 0.7,
+                                  child: PaypalDetails(
+                                    amount: widget.amount.toString(),
+                                    channelId: widget.channelId,
+                                    notes: widget.notes,
+                                    contentId: widget.contentId,
+                                    postType: widget.postType,)));
                     }
                   },
                   child: Container(
@@ -1637,6 +1877,13 @@ class _PaymentMehodModalState extends State<PaymentMehodModal> {
 
 class PaypalDetails extends StatefulWidget {
   String amount;
+  int channelId;
+  String notes;
+  String contentId;
+  String postType;
+
+  PaypalDetails(
+      {this.amount, this.notes, this.contentId, this.channelId, this.postType});
 
   @override
   _PaypalDetailsState createState() => _PaypalDetailsState();
@@ -1662,7 +1909,7 @@ class _PaypalDetailsState extends State<PaypalDetails> {
         expirationDayText.isNotEmpty &&
         expirationMonthText.isNotEmpty &&
         cvvText.isNotEmpty;
-    bool lengthValidation = cardNumberController.text.length == 12 &&
+    bool lengthValidation = cardNumberController.text.length == 16 &&
         expirationDayText.length == 2 &&
         expirationMonthText.length == 4 &&
         cvvText.length == 3;
@@ -1739,11 +1986,11 @@ class _PaypalDetailsState extends State<PaypalDetails> {
                     ),
                     SizedBox(height: constraints.maxHeight * 0.02),
                     DetailsTextField(
-                      labelText: "xxxx xxxx xxxx",
+                      labelText: "xxxx xxxx xxxx xxxx",
                       controller: cardNumberController,
                       inputList: [
                         WhitelistingTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(12)
+                        LengthLimitingTextInputFormatter(16)
                       ],
                       onChange: (value) {
                         setState(() {
@@ -1810,7 +2057,6 @@ class _PaypalDetailsState extends State<PaypalDetails> {
                       onChange: (value) {
                         setState(() {
                           cvvText = value;
-                          print("cvv changed");
                         });
                       },
                     ),
@@ -1822,6 +2068,25 @@ class _PaypalDetailsState extends State<PaypalDetails> {
                           if (validation && lengthValidation) {
                             if (expirationValidation && cardType != null) {
                               Navigator.pop(context);
+                              showModalBottomSheet(context: context,
+                                  isScrollControlled: true,
+                                  isDismissible: false,
+                                  builder: (cntxs) =>
+                                      Container(height: MediaQuery
+                                          .of(cntxs)
+                                          .size
+                                          .height * 0.7,
+                                          child: SendDonationPaymentRequest(
+                                            amount: widget.amount,
+                                            channelId: widget.channelId,
+                                            notes: widget.notes,
+                                            cardNumber: cardNumberText,
+                                            cardType: cardType,
+                                            cvc: cvvText,
+                                            expiryMonth: expirationDayText,
+                                            expiryYear: expirationMonthText,
+                                            contentId: widget.contentId,
+                                            postType: widget.postType,)));
                             }
                           }
                         },
@@ -1868,6 +2133,122 @@ class _PaypalDetailsState extends State<PaypalDetails> {
       return null;
     }
   }
+}
+
+
+class SendDonationPaymentRequest extends StatefulWidget {
+  String amount;
+  String cardType;
+  String cardNumber;
+  int channelId;
+  String cvc;
+  String expiryMonth;
+  String expiryYear;
+  String notes;
+  String postType;
+  String contentId;
+
+  SendDonationPaymentRequest(
+      {this.amount, this.cardType, this.cardNumber, this.cvc, this.expiryMonth, this.expiryYear, this.notes, this.channelId, this.postType, this.contentId});
+
+  @override
+  _SendDonationPaymentRequestState createState() =>
+      _SendDonationPaymentRequestState();
+}
+
+class _SendDonationPaymentRequestState
+    extends State<SendDonationPaymentRequest> {
+  final AsyncMemoizer _memoizer = AsyncMemoizer();
+  String userToken;
+  String memberId;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(future: _memoizer.runOnce(() =>
+        makePaymentOfDonation(
+            context: context,
+            contentId: widget.contentId,
+            notes: widget.notes,
+            postType: widget.postType,
+            channelId: widget.channelId,
+            amount: widget.amount,
+            cardType: widget.cardType,
+            cardNumber: widget.cardNumber,
+            cvc: widget.cvc,
+            expiryMonth: widget.expiryMonth,
+            expiryYear: widget.expiryYear
+        )), builder: (context, snapshot) {
+      switch (snapshot.connectionState) {
+        case ConnectionState.waiting :
+          return Center(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Container(width: 50, height: 50,
+                child: CircularProgressIndicator(
+                  backgroundColor: Colors.red,),),
+              Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: Text("Please Wait..."),)
+            ],),);
+          break;
+        case ConnectionState.done :
+          return snapshot.data == true ? Stack(
+            children: <Widget>[
+              Align(alignment: Alignment.topRight, child: Padding(
+                padding: EdgeInsets.only(right: 8.0, top: 4.0),
+                child: IconButton(
+                  icon: Icon(Icons.clear, size: 15), onPressed: () {
+                  Navigator.pop(context);
+                },),),),
+              Center(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(Icons.done, color: Colors.red, size: 50,),
+                  Padding(
+                    padding: EdgeInsets.only(top: 16.0), child: Text("Done"),),
+                ],),),
+            ],
+          ) : Stack(
+            children: <Widget>[
+              Align(alignment: Alignment.topRight, child: Padding(
+                padding: EdgeInsets.only(right: 8.0, top: 4.0),
+                child: IconButton(
+                  icon: Icon(Icons.clear, size: 15), onPressed: () {
+                  Navigator.pop(context);
+                },),),),
+              Center(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(Icons.clear, color: Colors.red, size: 50,),
+                  Padding(padding: EdgeInsets.only(top: 16.0),
+                    child: Text("Something Went Wrong :("),),
+                ],),),
+            ],
+          );
+      }
+    },);;
+
+    /**/
+  }
+
+  @override
+  void initState() {
+    getData();
+    super.initState();
+  }
+
+  Future<void> getData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    SharedPrefHelper sph = SharedPrefHelper();
+    setState(() {
+      userToken = prefs.getString(sph.user_token);
+      memberId = prefs.getString(sph.member_id);
+    });
+  }
+
 }
 
 class DetailsTextField extends StatelessWidget {
@@ -2140,12 +2521,12 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
                                     onTap: () {
                                       if (payable != 0) {
                                         Navigator.pop(context);
-                                        showModalBottomSheet(
+/*                                        showModalBottomSheet(
                                             context: context,
                                             isDismissible: false,
                                             builder: (cntx) =>
                                                 PaymentMehodModal(double.parse(
-                                                    payable.toString())));
+                                                    payable.toString())));*/
                                       }
                                     },
                                     child: Container(
@@ -2227,7 +2608,7 @@ class _BuyTicketsUIState extends State<BuyTicketsUI> {
 
   void getData() async {
     var postData = await http.get(
-        "http://api.faithstreams.net/api/Member/GetEventByID/${widget.blog
+        "$baseAddress/api/Member/GetEventByID/${widget.blog
             .eventId}",
         headers: {"Authorization": "Bearer ${widget.userToken}"});
 

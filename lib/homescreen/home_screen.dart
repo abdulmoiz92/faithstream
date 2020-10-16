@@ -1,13 +1,18 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:faithstream/findchannels/find_channels.dart';
 import 'package:faithstream/homescreen/components/blog_posts.dart';
 import 'package:faithstream/profile/profile_main.dart';
 import 'package:faithstream/searchscreens/search_channels.dart';
+import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/trendingscreen/trending_posts.dart';
+import 'package:faithstream/utils/ProviderUtils/pending_provider.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
+import 'package:faithstream/utils/custom_modal.dart' as bs;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,17 +20,20 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
   SharedPrefHelper sph = SharedPrefHelper();
   String userId;
   String userToken;
   String memberId;
   String profileImage;
+  bool internet = false;
+  MemoryImage memoryImage;
 
 //  final List<TPost> _allTrendingPosts = [];
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     var appBar = AppBar(
         iconTheme: new IconThemeData(color: Colors.black87),
         title: Text(
@@ -37,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.symmetric(horizontal: 8.0),
             child: GestureDetector(
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (cntx) => Search()));
+                bs.showModalBottomSheet(context: context, builder: (cntx) => Search(),barrierColor: Colors.white.withOpacity(0),isScrollControlled: true,enableDrag: false,isDismissible: false);
               },
               child: Icon(
                 Icons.search,
@@ -103,6 +111,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<SharedPreferences> getData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     SharedPrefHelper sph = SharedPrefHelper();
+    internet = Provider.of<PendingRequestProvider>(context).internet;
+    setState(() {});
+    print("${prefs.getString(sph.profile_imagebytes)}");
     if (mounted)
       setState(() {
         userId = prefs.getString(sph.user_id);
@@ -117,50 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  /*showDialog(
-  context: context,
-  builder: (BuildContext context) {
-  return AlertDialog(
-  title: Text("What To Search ?"),
-  content: Column(
-  mainAxisSize: MainAxisSize.min,
-  children: <Widget>[
-  Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-  child: Row(
-  mainAxisAlignment: MainAxisAlignment.center,
-  crossAxisAlignment: CrossAxisAlignment.center,
-  children: <Widget>[
-  GestureDetector(
-  onTap: () {
-  Navigator.pop(context);
-  Navigator.push(context, MaterialPageRoute(builder: (cntx) => SearchChannels()));
-  },
-  child: Column(
-  children: <Widget>[
-  Icon(Icons.image,color: Colors.red,),
-  Padding(
-  padding: const EdgeInsets.only(top: 16.0),
-  child: Text("Channels"),
-  ),
-  ],
-  ),
-  ),
-  Spacer(),
-  Column(
-  children: <Widget>[
-  Icon(Icons.timeline,color: Colors.red,),
-  Padding(
-  padding: const EdgeInsets.only(top: 16.0),
-  child: Text("Posts"),
-  ),
-  ],
-  ),
-  ],
-  ),
-  ),
-  ],
-  ),
-  );
-  });*/
+  @override
+  // TODO: implement wantKeepAlive
+  bool get wantKeepAlive => true;
 }

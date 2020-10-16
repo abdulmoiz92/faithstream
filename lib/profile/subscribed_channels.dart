@@ -188,17 +188,12 @@ class _SubscribedChannelsState extends State<SubscribedChannels> {
 
   Future<void> getChannels() async {
     var ChannelData = await http.get(
-        "http://api.faithstreams.net/api/Member/GetMemberSubscribedChannels/$memberId",
+        "$baseAddress/api/Member/GetMemberSubscribedChannels/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     var CategoryDataJson = json.decode(ChannelData.body);
 
     for (var ch in CategoryDataJson['data']) {
-      var ChannelMemberData = await http.get(
-          "http://api.faithstreams.net/api/Member/GetMemberSubscribedChannels/$memberId",
-          headers: {"Authorization": "Bearer $userToken"});
-
-      var ChannelMemberDataJson = json.decode(ChannelMemberData.body);
 
       if (mounted)
         setState(() {

@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:faithstream/main.dart';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/model/pendingcomment.dart';
+import 'package:faithstream/model/pendinglike.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/singlepost/single_channel.dart';
 import 'package:faithstream/singlepost/single_post.dart';
@@ -51,9 +53,9 @@ class TitleAndLikes extends StatelessWidget {
             child: buildIconText(
                 context, "Buy Video", Icons.attach_money, 2.0, Colors.white,
                 onTap: () {
-              showModalBottomSheet(
+/*              showModalBottomSheet(
                   context: context,
-                  builder: (cntx) => PaymentMehodModal(blog.videoPrice));
+                  builder: (cntx) => PaymentMehodModal(blog.videoPrice));*/
             }),
             onPressed: () {},
           ),
@@ -82,9 +84,27 @@ class _LikeAndShareVideoState extends State<LikeAndShareVideo> {
         Padding(
           padding: const EdgeInsets.only(right: 10),
           child: GestureDetector(
-            onTap:() {
+            onTap:() async {
+                    bool internet = await hasInternet();
+                    SharedPrefHelper sph = SharedPrefHelper();
                     Provider.of<BlogProvider>(context).setIsPostLiked = widget.singleBlog.postId;
-                    likePost(context, widget.userToken, widget.memberId, DateTime.now(), DateTime.now(), () {}, widget.singleBlog.postId);
+                    if(internet == true) {
+                      likePost(context, widget.userToken, widget.memberId, DateTime.now(), DateTime.now(), () {}, widget.singleBlog.postId);
+                    }
+                    if(internet == false) {
+                      Provider
+                          .of<PendingRequestProvider>(context)
+                          .addPendingLike = new PendingLike(
+                          userToken: widget.userToken,
+                          memberId: widget.memberId,
+                          createdOn: DateTime.now(),
+                          updatedOn: DateTime.now(),
+                          blogId: widget.singleBlog.postId);
+                      sph.savePosts(sph.pendinglikes_requests, Provider
+                          .of<PendingRequestProvider>(context)
+                          .pendingLikes);
+
+                    }
                   },
             child: Icon(
               Icons.thumb_up,
@@ -323,6 +343,7 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
                       padding: EdgeInsets.only(left: 10.0),
                       width: widget.constraints.maxWidth * 0.85,
                       child: TextField(
+                        autofocus: true,
                         focusNode: commentFocus,
                         maxLines: null,
                         style: TextStyle(color: Colors.black),
@@ -366,29 +387,28 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
     );
   }
   Future<Builder> commentOnSinglePost(BuildContext context) async {
-    bool internet = await hasInternet();
+    bool internet = Provider.of<PendingRequestProvider>(context).internet;
     Comment newComment = new Comment(
         commentMemberId: int.parse(memberId),
-        temopraryId: "temporary${Provider.of<BlogProvider>(context).getCommentsList().length + 1}",
+        temopraryId: "temporary${widget.postId}",
         authorImage: profileImage,
         commentText: commentController.value.text,
         authorName: fullName,
         time: compareDate(DateTime.now().toIso8601String()));
     Provider.of<BlogProvider>(context).addComment(newComment);
+//    Provider.of<BlogProvider>(context).setPostComment(widget.postId, newComment);
     commentController.clear();
     FocusScope.of(context).unfocus();
     if(internet == false) {
       SharedPrefHelper sph = SharedPrefHelper();
-      Provider.of<PendingRequestProvider>(context).addPendingComments = new PendingComment(userToken: userToken, memberId: memberId, createdOn: DateTime.now(), updatedOn: DateTime.now(), postId: widget.postId, tempId: "temporary${Provider
-          .of<BlogProvider>(context)
-          .getCommentsList()
-          .length + 1}",commentText: newComment.commentText,commentedBy: fullName);
+      Provider.of<PendingRequestProvider>(context).addPendingComments = new PendingComment(userToken: userToken, memberId: memberId, createdOn: DateTime.now(), updatedOn: DateTime.now(), postId: widget.postId, tempId: "temporary${widget.postId}",commentText: newComment.commentText,commentedBy: fullName);
       sph.savePosts(sph.pendingcomment_requests, Provider.of<PendingRequestProvider>(context).pendingComments);
       Navigator.pop(context);
     }
     if(internet == true)
-    commentOnPost(
-        context,
+      Navigator.pop(context);
+      commentOnPost(
+        globalContext,
         userToken,
         "${memberId}",
         postId: widget.postId,
@@ -396,7 +416,7 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
         createdOn: DateTime.now(),
         updatedOn: DateTime.now(),
         tempId: newComment.temopraryId
-    ).then((_) => Navigator.pop(context));
+    );
   }
   Builder commentOnVideoSinglePost(BuildContext context) {
     Comment newComment = new Comment(
@@ -409,8 +429,9 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
     Provider.of<BlogProvider>(context).addTPostComment(newComment);
     commentController.clear();
     FocusScope.of(context).unfocus();
+    Navigator.pop(context);
     commentOnVideoPost(
-      context,
+      globalContext,
       userToken,
       "${memberId}",
       videoId: widget.postId,
@@ -418,7 +439,7 @@ class _AddCommentSingleState extends State<AddCommentSingle> {
       tempId: newComment.temopraryId,
       createdOn: DateTime.now(),
       updatedOn: DateTime.now(),
-    ).then((value) => Navigator.pop(context));
+    );
   }
 }
 
@@ -497,6 +518,7 @@ class _SingleCommentState extends State<SingleComment> {
                             widget.isTrending != true
                                 ? deleteComment(context, widget.postId,
                                     commentFormat.commentId, widget.userToken)
+  //                              .then((_) => Provider.of<BlogProvider>(context).commentExistsInPostComment(commentFormat, widget.postId))
                                 : deleteVideoComment(context, widget.postId,
                                     commentFormat.commentId, widget.userToken);
                           },

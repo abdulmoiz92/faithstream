@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +10,7 @@ class SharedPrefHelper {
   final String is_login = "is_login";
   final String member_id = "member_id";
   final String profile_image = "profile_image";
+  final String profile_imagebytes = "profile_imagebytes";
   final String first_name = "first_name";
   final String last_name = "last_name";
   var blog_posts = "blog_posts";
@@ -65,14 +67,14 @@ class SharedPrefHelper {
     return json.decode(prefs.getString(key));
   }
 
+  Future<void> setProfileImageBytes(Uint8List image) async {
+    final prefs = await SharedPreferences.getInstance();
+    String s = String.fromCharCodes(image);
+    prefs.setString(profile_imagebytes, s);
+  }
+
   clearKeyFromPrefs(String key) async {
     final prefs = await SharedPreferences.getInstance();
     prefs.remove(key);
   }
-
-  Future<void> setPendingRequests(List<void> pendingRequests) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-
-  }
-
 }

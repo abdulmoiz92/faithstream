@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:http/http.dart' as http;
@@ -27,12 +28,13 @@ class SingleBlogPost extends StatefulWidget {
   SingleBlogPostState createState() => SingleBlogPostState();
 }
 
-class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
+class SingleBlogPostState extends State<SingleBlogPost> with AutomaticKeepAliveClientMixin {
   String userToken;
   String memberId;
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     var orientation = MediaQuery
         .of(context)
         .orientation;
@@ -73,6 +75,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
                       tag: "VideoImage",
                       child: VideoPlayerScreen(
                         url: widget.singleBlog.videoUrl,
+                        blog: widget.singleBlog,
                       ),
                     )
                         : VideoPlayerScreen(url: widget.trendingPost.videoUrl),
@@ -96,7 +99,6 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
                           postedDate: new DateFormat.yMMMd()
                               .format(DateTime.parse(widget.singleBlog.date)),
                           postDescription: "Something",
-                          comments: widget.singleBlog.comments,
                         )
                             : SinglePostContent(
                           userToken,
@@ -148,7 +150,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
 
   Future<void> getComments() async {
     var commentData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetPostComments/${widget.singleBlog.postId}",
+        "$baseAddress/api/Post/GetPostComments/${widget.singleBlog.postId}",
         headers: {"Authorization": "Bearer $userToken"});
     if (commentData.body.isNotEmpty) {
       var commentDataJson = json.decode(commentData.body);
@@ -156,7 +158,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
         if(mounted)
           for (var c in commentDataJson['data']) {
             var userData = await http.get(
-                "http://api.faithstreams.net/api/Member/GetMemberProfile/${c['memberID']}",
+                "$baseAddress/api/Member/GetMemberProfile/${c['memberID']}",
                 headers: {"Authorization": "Bearer $userToken"});
             if (commentDataJson['data'] == []) continue;
             if(mounted) {
@@ -177,7 +179,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
 
   Future<void> getVideoComments() async {
     var commentData = await http.get(
-        "http://api.faithstreams.net/api/Channel/GetVideoComments/${widget.trendingPost.videoId}",
+        "$baseAddress/api/Channel/GetVideoComments/${widget.trendingPost.videoId}",
         headers: {"Authorization": "Bearer $userToken"});
     if (commentData.body.isNotEmpty) {
       var commentDataJson = json.decode(commentData.body);
@@ -185,7 +187,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
         if(mounted)
           for (var c in commentDataJson['data']) {
             var userData = await http.get(
-                "http://api.faithstreams.net/api/Member/GetMemberProfile/${c['authorID']}",
+                "$baseAddress/api/Member/GetMemberProfile/${c['authorID']}",
                 headers: {"Authorization": "Bearer $userToken"});
             if (commentDataJson['data'] == []) continue;
             if(mounted) {
@@ -204,5 +206,7 @@ class SingleBlogPostState extends State<SingleBlogPost> with ChangeNotifier {
     }
   }
 
-
+  @override
+  // TODO: implement wantKeepAlive
+  bool get wantKeepAlive => true;
 }

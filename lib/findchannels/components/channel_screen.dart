@@ -105,11 +105,11 @@ class _ChannelScreenState extends State<ChannelScreen> {
 
   Future<void> getChannels() async {
     var ChannelData = await http.get(
-        "http://api.faithstreams.net/api/Channel/GetChannelsBySubCategory/${widget.subCategoryId}",
+        "$baseAddress/api/Channel/GetChannelsBySubCategory/${widget.subCategoryId}",
         headers: {"Authorization": "Bearer $userToken"});
 
     var ChannelDataPrefexies = await http.get(
-        "http://api.faithstreams.net/api/Channel/GetChannelsBySubCategoryPrefix/${widget.subCategoryPrefixesId}",
+        "$baseAddress/api/Channel/GetChannelsBySubCategoryPrefix/${widget.subCategoryPrefixesId}",
         headers: {"Authorization": "Bearer $userToken"});
 
     var CategoryDataJson = json.decode(widget.subCategoryId != null
@@ -118,7 +118,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
 
     for (var ch in CategoryDataJson['data']) {
       var ChannelMemberData = await http.get(
-          "http://api.faithstreams.net/api/Member/GetChannelByID/${ch['id']}/$memberId",
+          "$baseAddress/api/Member/GetChannelByID/${ch['id']}/$memberId",
           headers: {"Authorization": "Bearer $userToken"});
      var ChannelMemberDataJson = json.decode(ChannelMemberData.body);
 

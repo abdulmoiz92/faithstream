@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:async/async.dart';
 
 import 'package:faithstream/homescreen/components/your_blogs.dart';
+import 'package:faithstream/main.dart';
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/channel.dart';
+import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/model/donation.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
@@ -200,7 +202,7 @@ class _SingleChannelWallState extends State<SingleChannelWall>
     with AutomaticKeepAliveClientMixin {
   String userToken;
   String memberId;
-  List<Blog> wallBlogs = [];
+  String profileImage;
 
   @override
   Widget build(BuildContext context) {
@@ -209,13 +211,14 @@ class _SingleChannelWallState extends State<SingleChannelWall>
       memberId,
       userToken,
       isSingleChannel: true,
+      profileImage: profileImage,
     );
   }
 
   @override
   void initState() {
-    getData();
     super.initState();
+    getData();
   }
 
   Future<SharedPreferences> getData() async {
@@ -225,17 +228,18 @@ class _SingleChannelWallState extends State<SingleChannelWall>
       setState(() {
         userToken = prefs.getString(sph.user_token);
         memberId = prefs.getString(sph.member_id);
+        profileImage = prefs.getString(sph.profile_image);
       });
-    checkInternet(context, futureFunction: getVideos());
+    checkInternet(context, futureFunction: getVideos().then((value) => getComment()));
   }
 
   Future<void> getVideos() async {
     var channelData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetPostsByChannelID/${widget.channelId}",
+        "$baseAddress/api/Post/GetPostsByChannelID/${widget.channelId}",
         headers: {"Authorization": "Bearer $userToken"});
 
     var isFavouriteData = await http.get(
-        "http://api.faithstreams.net/api/Post/GetFavoriteTimeLine/$memberId",
+        "$baseAddress/api/Post/GetFavoriteTimeLine/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     print("$memberId");
@@ -259,7 +263,7 @@ class _SingleChannelWallState extends State<SingleChannelWall>
               authorImage: null,
               date: null,
               time: null,
-              likes: null,
+              likesCount: null,
               views: null,
               subscribers: null);
 
@@ -293,7 +297,7 @@ class _SingleChannelWallState extends State<SingleChannelWall>
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
                     time: "${compareDate(postData['dateCreated'])} ago",
-                    likes: "${postData['likesCount']}",
+                    likesCount: postData['likesCount'],
                     views: postData['event']['video'] != null
                         ? "${postData['event']['video']['numOfViews']}"
                         : null,
@@ -319,7 +323,7 @@ class _SingleChannelWallState extends State<SingleChannelWall>
                     authorImage: postData['authorImage'],
                     date: postData['dateCreated'],
                     time: "${compareDate(postData['dateCreated'])} ago",
-                    likes: "${postData['video']['numOfLikes']}",
+                    likesCount: postData['video']['numOfLikes'],
                     views: "${postData['video']['numOfViews']}",
                     subscribers: "${postData['numOfSubscribers']}",
                     videoDuration: "",
@@ -344,7 +348,7 @@ class _SingleChannelWallState extends State<SingleChannelWall>
                   authorImage: postData['authorImage'],
                   date: postData['dateCreated'],
                   time: "${compareDate(postData['dateCreated'])} ago",
-                  likes: "${postData['likesCount']}",
+                  likesCount: postData['likesCount'],
                   views: null,
                   subscribers: "${postData['numOfSubscribers']}",
                   isDonationRequired: postData['isDonationRequire'],
@@ -369,6 +373,32 @@ class _SingleChannelWallState extends State<SingleChannelWall>
             });
           Provider.of<BlogProvider>(context).addSingleChannelBlogs = newBlog;
           setState(() {});
+        }
+      }
+    }
+  }
+
+  Future<void> getComment() async {
+    for(var b in Provider.of<BlogProvider>(context).singleChannelBlogs) {
+      var commentData = await http.get(
+          "$baseAddress/api/Post/GetPostComments/${b.postId}",
+          headers: {"Authorization": "Bearer ${userToken}"});
+      if (commentData.body.isNotEmpty) {
+        var commentDataJson = json.decode(commentData.body);
+        if (commentDataJson['data'] != null) {
+          if (mounted)
+            for (var c in commentDataJson['data']) {
+              if(c['memberID'] == int.parse(memberId)) {
+                Comment newComment = new Comment(
+                    commentId: c['id'],
+                    commentMemberId: c['memberID'],
+                    authorImage: profileImage,
+                    commentText: c['commentText'],
+                    authorName: c['commentedBy'],
+                    time: "${compareDate(c['dateCreated'])}");
+                Provider.of<BlogProvider>(context).setPostComment(b.postId, newComment);
+              }
+            }
         }
       }
     }

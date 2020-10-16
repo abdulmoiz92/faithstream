@@ -75,7 +75,7 @@ class _MyDonationsState extends State<MyDonations> {
 
   Future<void> getDonations() async {
     var myDonationData = await http.get(
-        "http://api.faithstreams.net/api/Member/GetMemberDonationHistory/$memberId",
+        "$baseAddress/api/Member/GetMemberDonationHistory/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
     print("$memberId");
@@ -88,7 +88,7 @@ class _MyDonationsState extends State<MyDonations> {
           if (myDonationDataJson['data'] == []) continue;
 
           var channelData = await http.get(
-              "http://api.faithstreams.net/api/Channel/GetChannelByChannelID/${u['channelID']}",
+              "$baseAddress/api/Channel/GetChannelByChannelID/${u['channelID']}",
               headers: {"Authorization": "Bearer $userToken"});
 
           var channelDataJson = json.decode(channelData.body);

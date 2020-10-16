@@ -1,12 +1,14 @@
 import 'dart:convert';
 
 import 'package:faithstream/homescreen/components/blog_posts.dart';
+import 'package:faithstream/utils/custom_modal.dart' as bs;
 import 'package:faithstream/loginscreen/login_screen.dart';
 import 'package:faithstream/profile/event_followed.dart';
 import 'package:faithstream/profile/favourite_posts.dart';
 import 'package:faithstream/profile/components/profile_header.dart';
 import 'package:faithstream/profile/edit_profile.dart';
 import 'package:faithstream/profile/mydonations.dart';
+import 'package:faithstream/profile/purchased_items.dart';
 import 'package:faithstream/profile/subscribed_channels.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
@@ -34,33 +36,8 @@ class _ProfileNavigationState extends State<ProfileNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    void refreshPage(bool refresh) {
-      if (refresh == true) {
-        print("called");
-        getData();
-      }
-    }
-
-    void moveToEditProfilePage() async {
-      final refresh = await Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => EditProfile(
-                  userToken: userToken,
-                  userId: userId,
-                  memberId: memberId,
-                  image: userProfileImage,
-                  firstName: userFirstName,
-                  lastName: userLastName,
-                  userEmail: userEmail,
-                  userPhone: userPhoneNumber,
-                )),
-      );
-      refreshPage(refresh);
-    }
 
     return LayoutBuilder(builder: (cntx, constraints) {
-      GlobalKey<BlogPostsScreenState> blogkey = new GlobalKey();
       return Scaffold(
         body: Container(
           margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
@@ -94,27 +71,30 @@ class _ProfileNavigationState extends State<ProfileNavigation> {
                     ),
                     buildProfileCard("Edit Profile", Icons.person, Colors.blue,
                         onTap: () {
-                      moveToEditProfilePage();
+                      bs.showModalBottomSheet(context: context, builder: (cntx) => EditProfile(
+                        userToken: userToken,
+                        userId: userId,
+                        memberId: memberId,
+                        image: userProfileImage,
+                        firstName: userFirstName,
+                        lastName: userLastName,
+                        userEmail: userEmail,
+                        userPhone: userPhoneNumber,
+                      ),barrierColor: Colors.white.withOpacity(0),isScrollControlled: true,enableDrag: false,isDismissible: false);
                     }),
                     Divider(
                       color: Colors.black12,
                     ),
                     buildProfileCard("My Favourites", Icons.star, Colors.amber,
                         onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (cntx) => FavouritePosts()));
+                      bs.showModalBottomSheet(context: context, builder: (cntx) => FavouritePosts(),isDismissible: false,enableDrag: false,isScrollControlled: true,barrierColor: Colors.white.withOpacity(0));
                     }),
                     Divider(
                       color: Colors.black12,
                     ),
                     buildProfileCard(
                         "My Events", Icons.event, Colors.deepOrange, onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (cntx) => EventsFollowed()));
+                          bs.showModalBottomSheet(context: context, builder: (cntx) => EventsFollowed(),barrierColor: Colors.white.withOpacity(0),isScrollControlled: true,enableDrag: false,isDismissible: false);
                     }),
                     Divider(
                       color: Colors.black12,
@@ -122,18 +102,22 @@ class _ProfileNavigationState extends State<ProfileNavigation> {
                     buildProfileCard(
                         "Subscribed Channels", Icons.people, Colors.pink,
                         onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (cntx) => SubscribedChannels()));
+                          bs.showModalBottomSheet(context: context, builder: (cntx) => SubscribedChannels(),isDismissible: false,enableDrag: false,isScrollControlled: true,barrierColor: Colors.white.withOpacity(0));
                     }),
+                    Divider(
+                      color: Colors.black12,
+                    ),
+                    buildProfileCard(
+                        "Purchased Items", Icons.local_grocery_store, Colors.green,
+                        onTap: () {
+                          bs.showModalBottomSheet(context: context, builder: (cntx) => PurchasedItems(),barrierColor: Colors.white.withOpacity(0),isScrollControlled: true,enableDrag: false,isDismissible: false);
+                        }),
                     Divider(
                       color: Colors.black12,
                     ),
                     buildProfileCard("My Donations", Icons.pan_tool, Colors.red,
                         onTap: () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (cntx) => MyDonations()));
+                      bs.showModalBottomSheet(context: context, builder: (cntx) => MyDonations(),isDismissible: false,enableDrag: false,isScrollControlled: true,barrierColor: Colors.white.withOpacity(0));
                     }),
                     Divider(
                       color: Colors.black12,
@@ -182,7 +166,7 @@ class _ProfileNavigationState extends State<ProfileNavigation> {
 
   Future<void> getUser() async {
     var userData = await http.get(
-        "http://api.faithstreams.net/api/User/GetUserData/$userId",
+        "$baseAddress/api/User/GetUserData/$userId",
         headers: {"Authorization": "Bearer $userToken"});
 
     var userDataJson = json.decode(userData.body);

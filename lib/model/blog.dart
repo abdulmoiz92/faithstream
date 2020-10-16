@@ -18,7 +18,8 @@ class Blog {
   final String authorImage;
   final String date;
   final String time;
-  final String likes;
+  int likesCount;
+  int commentsCount;
   final String views;
   final String subscribers;
   final String videoDuration;
@@ -33,15 +34,11 @@ class Blog {
   final bool isPurchased;
   final double videoPrice;
   final int freeVideoLength;
-  List<Comment> comments;
+  Comment postComment;
   List<Donation> donations;
   final bool isPast;
   Uint8List imageBytes;
   Uint8List authorImageBytes;
-
-  set addCommentSet(Comment comment) {
-    comments.add(comment);
-  }
 
   get getIsFavourite => _isFavourite;
 
@@ -51,8 +48,28 @@ class Blog {
     _isLiked = value;
   }
 
+  set increaseLikeCount(_) {
+    likesCount = likesCount + 1;
+  }
+
+  set decreseLikeCount(_) {
+    likesCount = likesCount - 1;
+  }
+
+  set increaseCommentCount(_) {
+    commentsCount = commentsCount + 1;
+  }
+
+  set decreseCommentCount(_) {
+    commentsCount = commentsCount - 1;
+  }
+
   set setIsFavourite(int value) {
     _isFavourite = value;
+  }
+
+  set setComment(Comment comment) {
+    postComment = comment;
   }
 
   Blog({
@@ -67,12 +84,13 @@ class Blog {
     @required this.authorImage,
     @required this.date,
     @required this.time,
-    @required this.likes,
+    @required this.likesCount,
+    @required this.commentsCount,
     @required this.views,
     @required this.subscribers,
     this.imageWidth,
     this.imageHeight,
-    this.comments,
+    this.postComment,
     this.eventId,
     this.eventLocation,
     this.eventTime,

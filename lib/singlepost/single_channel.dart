@@ -145,7 +145,7 @@ class _SingleChannelState extends State<SingleChannel> {
 
   Future<void> getVideos() async {
     var channelData = await http.get(
-        "http://api.faithstreams.net/api/Member/GetChannelByID/${widget
+        "$baseAddress/api/Member/GetChannelByID/${widget
             .channelId}/$memberId",
         headers: {"Authorization": "Bearer $userToken"});
 
