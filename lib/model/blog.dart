@@ -3,7 +3,9 @@ import 'dart:typed_data';
 
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/model/donation.dart';
+import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
 
 class Blog {
   final String postId;
@@ -72,41 +74,136 @@ class Blog {
     postComment = comment;
   }
 
-  Blog({
-    this.isPast,
-    @required this.postId,
-    @required this.postType,
-    @required this.videoUrl,
-    @required this.image,
-    @required this.title,
-    @required this.author,
-    @required this.authorId,
-    @required this.authorImage,
-    @required this.date,
-    @required this.time,
-    @required this.likesCount,
-    @required this.commentsCount,
-    @required this.views,
-    @required this.subscribers,
-    this.imageWidth,
-    this.imageHeight,
-    this.postComment,
-    this.eventId,
-    this.eventLocation,
-    this.eventTime,
-    this.videoDuration,
-    this.donations,
-    @required this.isTicketAvailable,
-    @required this.isDonationRequired,
-    this.isPaidVideo,
-    this.isPurchased,
-    this.videoPrice,
-    this.freeVideoLength,
-    this.imageBytes,
-    this.authorImageBytes
-  });
+  Blog(
+      {this.isPast,
+      @required this.postId,
+      @required this.postType,
+      @required this.videoUrl,
+      @required this.image,
+      @required this.title,
+      @required this.author,
+      @required this.authorId,
+      @required this.authorImage,
+      @required this.date,
+      @required this.time,
+      @required this.likesCount,
+      @required this.commentsCount,
+      @required this.views,
+      @required this.subscribers,
+      this.imageWidth,
+      this.imageHeight,
+      this.postComment,
+      this.eventId,
+      this.eventLocation,
+      this.eventTime,
+      this.videoDuration,
+      this.donations,
+      @required this.isTicketAvailable,
+      @required this.isDonationRequired,
+      this.isPaidVideo,
+      this.isPurchased,
+      this.videoPrice,
+      this.freeVideoLength,
+      this.imageBytes,
+      this.authorImageBytes});
+
+  factory Blog.fromImageJson(
+      Map<String, dynamic> json,
+      List<Donation> donations,
+      Uint8List authorImageBytes,
+      Uint8List imageBytes) {
+    return Blog(
+      postId: json['id'],
+      postType: json['postType'],
+      videoUrl: null,
+      image: json['image']['url'],
+      title: json['title'],
+      authorId: json['authorID'],
+      author: json['authorName'],
+      authorImage: json['authorImage'],
+      authorImageBytes: authorImageBytes,
+      date: json['dateCreated'],
+      time: "${compareDate(json['dateCreated'])} ago",
+      likesCount: json['likesCount'],
+      commentsCount: json['commentsCount'],
+      views: null,
+      subscribers: "${json['numOfSubscribers']}",
+      isDonationRequired: json['isDonationRequire'],
+      donations: donations,
+      imageBytes: imageBytes,
+    );
+  }
+
+  factory Blog.fromVideoJson(
+      Map<String, dynamic> json,
+      List<Donation> donations,
+      Uint8List authorImageBytes,
+      Uint8List imageBytes) {
+    return Blog(
+        postId: json['id'],
+        postType: json['postType'],
+        videoUrl: json['video']['url'],
+        image: json['video']['thumbnail'],
+        title: json['title'],
+        authorId: json['authorID'],
+        author: json['authorName'],
+        authorImage: json['authorImage'],
+        authorImageBytes: authorImageBytes,
+        date: json['dateCreated'],
+        time: "${compareDate(json['dateCreated'])} ago",
+        likesCount: json['likesCount'],
+        commentsCount: json['commentsCount'],
+        views: "${json['video']['numOfViews']}",
+        subscribers: "${json['numOfSubscribers']}",
+        videoDuration: "",
+        donations: donations,
+        imageBytes: imageBytes,
+        isDonationRequired: json['isDonationRequire'],
+        isPaidVideo: json['video']['isPaidContent'],
+        isPurchased: json['video']['isPurchased'],
+        videoPrice: json['video']['price'] == null
+            ? null
+            : double.parse(json['video']['price']),
+        freeVideoLength: json['video']['freeVideoLength']);
+  }
+
+  factory Blog.fromEventJson(
+      Map<String, dynamic> json,
+      List<Donation> donations,
+      Uint8List authorImageBytes,
+      Uint8List imageBytes) {
+    return Blog(
+        postId: json['id'],
+        postType: json['postType'],
+        videoUrl: json['event']['video'] != null
+            ? json['event']['video']['url']
+            : json['event']['video'],
+        image: json['event']['image'],
+        title: json['title'],
+        authorId: json['authorID'],
+        author: json['authorName'],
+        authorImage: json['authorImage'],
+        authorImageBytes: authorImageBytes,
+        date: json['dateCreated'],
+        time: "${compareDate(json['dateCreated'])} ago",
+        likesCount: json['likesCount'],
+        commentsCount: json['commentsCount'],
+        views: json['event']['video'] != null
+            ? "${json['event']['video']['numOfViews']}"
+            : null,
+        subscribers: "${json['numOfSubscribers']}",
+        eventId: json['event']['id'],
+        eventLocation: json['event']['location'],
+        eventTime:
+            "${DateFormat.jm().format(DateTime.parse(json['event']['startTime']))} | ${DateFormat.jm().format(DateTime.parse(json['event']['endTime']))} , ${DateFormat.MMMd().format(DateTime.parse(json['event']['postSchedule']))}",
+        isDonationRequired: json['isDonationRequire'],
+        donations: donations,
+        imageBytes: imageBytes,
+        isTicketAvailable: json['event']['isTicketPurchaseRequired'],
+        isPast: json['event']['isPast']);
+  }
 
   Map toJson() => {
-    'postId': postId,
-  };
+        'postId': postId,
+      };
 }

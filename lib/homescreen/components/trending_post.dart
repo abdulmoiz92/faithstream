@@ -1,12 +1,8 @@
-
-import 'package:faithstream/homescreen/components/your_blogs.dart';
 import 'package:faithstream/model/trending_posts.dart';
 import 'package:faithstream/singlepost/single_post.dart';
-import 'package:faithstream/styles/loginscreen_constants.dart';
-import 'package:faithstream/utils/helpingwidgets/trending_widgets.dart';
+import 'package:faithstream/utils/helpingwidgets/TrendingWidgets/main/trendingvideo_main_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class TrendingPosts extends StatelessWidget {
   final List<TPost> trendingPosts;

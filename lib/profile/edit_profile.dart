@@ -1,6 +1,6 @@
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
-import 'package:faithstream/utils/helpingwidgets/profile_widgets.dart';
+import 'package:faithstream/utils/helpingwidgets/ProfileWidgets/edit_profile_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 

@@ -1,9 +1,13 @@
 import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/model/trending_posts.dart';
-import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
-import 'package:faithstream/utils/helpingwidgets/singlevideo_widgets.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/comment/singlevideo_heading.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/comment/singlevideo_single_comment.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/singlevideo_channel_info.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/singlevideo_like_share.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/singlevideo_share_social.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/singlevideo_title.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

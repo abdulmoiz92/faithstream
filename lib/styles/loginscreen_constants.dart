@@ -1,17 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:faithstream/homescreen/home_screen.dart';
-import 'package:faithstream/model/blog.dart';
 import 'package:faithstream/model/channel.dart';
-import 'package:faithstream/model/trending_posts.dart';
-import 'package:faithstream/trendingscreen/trending_posts.dart';
-import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:video_player/video_player.dart';
 
 const kTitleText =
     TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 35);

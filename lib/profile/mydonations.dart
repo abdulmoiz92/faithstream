@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:faithstream/model/userDonations.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
-import 'package:faithstream/utils/helpingwidgets/profile_widgets.dart';
+import 'package:faithstream/utils/helpingwidgets/ProfileWidgets/profile_donations.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

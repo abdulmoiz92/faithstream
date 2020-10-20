@@ -7,8 +7,11 @@ import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/ProviderUtils/pending_provider.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
-import 'package:faithstream/utils/helpingwidgets/blog_widgets.dart';
-import 'package:faithstream/utils/helpingwidgets/singlevideo_widgets.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Author/blog_author.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Event/blog_event.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Image/blog_image.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/LikeCommentShare/blog_like_comment_share.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Video/blog_video.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -119,7 +122,7 @@ class _SingleSearchPostState extends State<SingleSearchPost> {
                             child: Container(width: constraints.maxWidth * 0.8,child: SingleCommentDesign(memberId: widget.memberId,userToken: widget.userToken,constraints: constraints,postId: widget.blog.postId,comment: widget.blog.postComment,isFrontComment: true,)),
                           ),
                         ),
-                      Align(
+                      /*Align(
                         alignment: Alignment.centerLeft,
                         child: GestureDetector(onTap: () {
                           showModalBottomSheet(
@@ -133,7 +136,7 @@ class _SingleSearchPostState extends State<SingleSearchPost> {
                                 isTrending: false,
                               ));
                         },child: PostBottomComment(constraints)),
-                      ),
+                      ),*/
                     ],
                   ),
                 ),
@@ -163,13 +166,7 @@ class _SingleSearchPostState extends State<SingleSearchPost> {
           if (mounted)
             for (var c in commentDataJson['data']) {
               if(c['memberID'] == int.parse(widget.memberId)) {
-                Comment newComment = new Comment(
-                    commentId: c['id'],
-                    commentMemberId: c['memberID'],
-                    authorImage: widget.profileImage,
-                    commentText: c['commentText'],
-                    authorName: c['commentedBy'],
-                    time: "${compareDate(c['dateCreated'])}");
+                Comment newComment = new Comment.fromJson(c);
                 Provider.of<BlogProvider>(globalContext).setPostComment(widget.blog.postId, newComment);
               }
             }

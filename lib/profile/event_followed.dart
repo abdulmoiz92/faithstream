@@ -9,7 +9,7 @@ import 'package:faithstream/model/comment.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
 import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
 import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
-import 'package:faithstream/utils/helpingwidgets/blog_widgets.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Event/blog_event.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
