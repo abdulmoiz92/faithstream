@@ -1,9 +1,20 @@
 import 'package:faithstream/model/blog.dart';
-import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/model/comment.dart';
+import 'package:faithstream/model/trending_posts.dart';
+import 'package:faithstream/utils/ProviderUtils/blog_provider.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/comment/singlevideo_heading.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/comment/singlevideo_single_comment.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/singlevideo_channel_info.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/singlevideo_like_share.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/singlevideo_share_social.dart';
+import 'package:faithstream/utils/helpingwidgets/SingleVideoWidgets/singlevideo_title.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class SinglePostContent extends StatelessWidget {
+  final String postId;
+  final Blog blog;
   final String authorImage;
   final String authorName;
   final String authorSubscribers;
@@ -11,72 +22,98 @@ class SinglePostContent extends StatelessWidget {
   final String title;
   final String postedDate;
   final String postDescription;
+  final List<Comment> comments;
+  final String memberId;
+  final String userToken;
+  final bool isLiked;
+  final bool isTrending;
+  final TPost trendingPost;
+  final int channelId;
 
-  SinglePostContent(
-      {@required this.authorImage,@required this.authorName, @required this.authorSubscribers, @required this.postViews, @required this.title, @required this.postedDate, @required this.postDescription});
+  SinglePostContent(this.userToken, this.memberId,
+      {@required this.postId,
+        @required this.authorImage,
+        @required this.blog,
+        @required this.authorName,
+        @required this.authorSubscribers,
+        @required this.postViews,
+        @required this.title,
+        @required this.isLiked,
+        @required this.postedDate,
+        @required this.postDescription,
+        @required this.channelId,
+        @required this.comments, this.isTrending, this.trendingPost});
 
   @override
   Widget build(BuildContext context) {
+    ValueNotifier<List<Comment>> commentsValue = isTrending == true ? ValueNotifier(Provider.of<BlogProvider>(context).getTPostCommentsList()) : ValueNotifier(
+        Provider.of<BlogProvider>(context).getCommentsList());
+
     return LayoutBuilder(builder: (cnt, constraints) {
+      if(isTrending != true)
+      print(blog.postId);
       return SingleChildScrollView(
-        child: Padding(
-            padding: EdgeInsets.symmetric(
-                vertical: constraints.maxHeight * 0.05,
-                horizontal: constraints.maxWidth * 0.05),
-            child: Column(
-                children: <Widget>[
-                buildAvatarText(
-                context,
-                authorImage,
-                authorName,
-                constraints.maxHeight * 0.01,
-                buildIconText(context, authorSubscribers, Icons.person, 2.0,
-                Colors.blueGrey),
-                postViews != null ? buildIconText(
-                context, postViews, Icons.remove_red_eye, 2.0, Colors.blueGrey) : null,
-            Colors.black),
-        SizedBox(height: constraints.maxHeight * 0.05),
-        Column(
+        child: Column(
           children: <Widget>[
-            Container(
-              width: double.infinity,
-              child: Text(
-                title,
-                style: kTitleText.copyWith(fontSize: 25),
-                textAlign: TextAlign.left,
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  vertical: constraints.maxHeight * 0.05,
+                  horizontal: constraints.maxWidth * 0.05),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Flexible(
+                      child:
+                      TitleAndLikes(title, postViews, "1k", constraints,
+                        blog: isTrending != true ? blog : null,
+                        trendingPost: isTrending == true ? trendingPost : null,)),
+                  Spacer(),
+                  if(isTrending != true)
+                    LikeAndShareVideo(blog,userToken,memberId),
+                ],
               ),
             ),
-            SizedBox(
-              height: constraints.maxHeight * 0.04,
+            SizedBox(height: constraints.maxHeight * 0.01),
+            Divider(thickness: 0.5, color: Colors.black26),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  vertical: constraints.maxHeight * 0.02,
+                  horizontal: constraints.maxHeight * 0.04),
+              child:
+              ChannelInfoWidget(authorImage, authorName, "1k", constraints,channelId: channelId,),
             ),
-            Container(
-                width: double.infinity,
-                child: Text(
-                  "$postedDate",
-                  style: kLabelText,
-                  textAlign: TextAlign.left,
-                )),
-            SizedBox(
-              height: constraints.maxHeight * 0.04,
+            Divider(thickness: 0.5, color: Colors.black26),
+            SizedBox(height: constraints.maxHeight * 0.05),
+            ShareOnSocailWidget(constraints),
+            SizedBox(height: constraints.maxHeight * 0.08),
+            CommentHeadingAndAdd(
+              constraints: constraints,
+              postId: postId,
+              comments: comments,
+              isTrending: isTrending,
             ),
+            SizedBox(height: constraints.maxHeight * 0.04),
             Container(
-                width: constraints.maxWidth * 0.9,
-                child: Text(
-                  "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. \n It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).",
-                  style: kLabelText.copyWith(
-                      wordSpacing:
-                      constraints.maxWidth * 0.01,
-                      height: 1.8,
-                      color: Color(0xFF9BA0AB)),
-                  textAlign: TextAlign.left,
-                )),
+              key: Key("SinglePostComments"),
+              width: double.infinity,
+              color: Colors.white,
+              height: constraints.maxHeight * 0.5,
+              child: ListView.builder(
+                  itemCount: commentsValue.value.length,
+                  itemBuilder: (cntx, index) {
+                    return ValueListenableBuilder(
+                      valueListenable: commentsValue,
+                      builder: (context, comments, _) {
+                        return SingleComment(
+                            userToken, memberId, postId, comments,
+                            index, constraints,isTrending);
+                      },);
+                  }),
+            ),
           ],
         ),
-        ],
-      ),)
-      ,
       );
     });
   }
-
 }

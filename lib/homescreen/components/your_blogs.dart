@@ -1,143 +1,109 @@
-import 'dart:ui';
-
 import 'package:faithstream/model/blog.dart';
-import 'package:faithstream/singlepost/single_post.dart';
-import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Author/blog_author.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Event/blog_event.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Image/blog_image.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/LikeCommentShare/blog_like_comment_share.dart';
+import 'package:faithstream/utils/helpingwidgets/BlogWidgets/Video/blog_video.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class YourBlogs extends StatelessWidget {
   final List<Blog> allBlogs;
+  final String memberId;
+  final String userToken;
+  final bool isSingleChannel;
+  String profileImage;
 
-  YourBlogs(@required this.allBlogs);
+  YourBlogs(@required this.allBlogs, @required this.memberId,
+      @required this.userToken,
+      {this.isSingleChannel, this.profileImage});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (cntx, constraints) {
       return allBlogs == null
-          ? Text("No Blogs To Show")
+          ? Center(child: Text("Nothing To Show"))
           : ListView.builder(
-              scrollDirection: Axis.horizontal,
               itemCount: allBlogs.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (cntx) => SingleBlogPost(
-                                        singleBlog: allBlogs[index],
-                                      )));
-                        },
-                        child: Container(
-                          margin: EdgeInsets.only(
-                              right: constraints.maxWidth * 0.04),
-                          width: constraints.maxWidth * 0.7,
-                          child: Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(35.0),
-                            ),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(35),
-                                image: DecorationImage(
-                                    image: allBlogs[index].image == null
-                                        ? AssetImage("assets/images/laptop.png")
-                                        : NetworkImage(allBlogs[index].image),
-                                    fit: BoxFit.fill,
-                                    colorFilter: ColorFilter.mode(
-                                        Colors.black.withOpacity(0.35),
-                                        BlendMode.darken)),
-                              ),
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Column(
-                                  children: <Widget>[
-/*                      Image.asset("assets/images/loginbg.png",
-                              fit: BoxFit.cover, width: constraints.maxWidth, height: constraints.maxHeight * 0.6)*/
-                                    SizedBox(
-                                      height: constraints.maxHeight * 0.04,
-                                    ),
-                                    Flexible(
-                                      child: Container(
-                                          margin: EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 15),
-                                          width: constraints.maxWidth * 0.9,
-                                          child: Container(
-                                            height:
-                                                constraints.maxHeight * 0.68,
-                                            child: Text(
-                                              allBlogs[index].title,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              textAlign: TextAlign.left,
-                                              style: TextStyle(
-                                                  fontSize:
-                                                      (constraints.maxHeight *
-                                                              0.3) /
-                                                          4,
-                                                  color: Colors.white,
-                                                  height: 1.3,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          )),
-                                    ),
-                                    Spacer(),
-                                    Container(
-                                      height: constraints.maxHeight * 0.32,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 15),
-                                      child: buildAvatarText(
-                                        context,
-                                        allBlogs[index].authorImage,
-                                        allBlogs[index].author,
-                                        constraints.maxHeight * 0.01,
-                                        buildIconText(
-                                            context,
-                                            allBlogs[index].time,
-                                            Icons.watch_later,
-                                            2.0,
-                                            Colors.white),
-                                        buildIconText(
-                                            context,
-                                            allBlogs[index].likes,
-                                            Icons.thumb_up,
-                                            2.0,
-                                            Colors.white),
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+              itemBuilder: (cntx, index) {
+                return Center(
+                  child: Container(
+                    color: Colors.white,
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                        horizontal: constraints.maxWidth * 0.01,
+                        vertical: constraints.maxHeight * 0.01),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        AuthorInfo(
+                          allBlogs,
+                          index,
+                          constraints,
+                          memberId,
+                          userToken,
+                          allBlogs[index],
+                          isSingleChannel: isSingleChannel,
+                        ),
+                        if (allBlogs[index].postType == "Image")
+                          ImagePostWidget(allBlogs, index, constraints,
+                              userToken, memberId),
+                        if (allBlogs[index].postType == "Video")
+                          VideoPostWidget(allBlogs, index, constraints,
+                              userToken, memberId),
+                        if (allBlogs[index].postType == "Event")
+                          allBlogs[index].videoUrl == null
+                              ? EventImagePostWidget(
+                                  allBlogs,
+                                  index,
+                                  constraints,
+                                  memberId,
+                                  userToken,
+                                  isSingleChannel: isSingleChannel,
+                                )
+                              : EventVideoPostWidget(allBlogs, index,
+                                  constraints, userToken, memberId),
+                        /* ------------------- Like Share Comment -------------------------- */
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: LikeShareComment(
+                            allBlogs,
+                            index,
+                            constraints,
+                            memberId,
+                            userToken,
+                            isSingleChannel: isSingleChannel,
+                            profileImage: profileImage,
                           ),
                         ),
-                      );
-              });
+                        if (index != allBlogs.length - 1)
+                          Center(
+                              child: Container(
+                                  width: constraints.maxWidth * 0.92,
+                                  child: Divider(
+                                    color: Colors.black87.withAlpha(40),
+                                  ))),
+                        /*Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(onTap: () {
+                    showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.white,
+                        builder: (cntx) => AddCommentSingle(
+                          constraints: constraints,
+                          postId: allBlogs[index].postId,
+                          comments: null,
+                          isTrending: false,
+                        ));
+                    },child: PostBottomComment(constraints)),
+                  ),*/
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
     });
   }
 }
-/*index == 4
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Container(
-                              padding: EdgeInsets.all(5),
-                              width: 35,
-                              height: 35,
-                              decoration: BoxDecoration(
-                                  color: Colors.indigo,
-                                  borderRadius: BorderRadius.circular(50)),
-                              child: Center(child: Column(
-                                children: <Widget>[
-                                  Icon(Icons.arrow_forward,color: Colors.white,),
-                                  SizedBox(height: constraints.maxHeight * 0.01,),
-                                ],
-                              ),),
-                            ),
-                          ],
-                        ),
-                      )*/

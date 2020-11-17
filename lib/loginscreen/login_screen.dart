@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:faithstream/loginscreen/components/login_textfeild.dart';
 import 'package:faithstream/loginscreen/register_screen.dart';
 import 'package:faithstream/styles/loginscreen_constants.dart';
+import 'package:faithstream/utils/helpingmethods/helping_methods.dart';
 import 'package:faithstream/utils/shared_pref_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -24,91 +25,97 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: LayoutBuilder(builder: (cntx, constraints) {
-        return Column(
-          children: <Widget>[
-            Image.asset("assets/images/loginbg.png",
-                width: double.infinity,
-                height: constraints.maxHeight * 0.45,
-                fit: BoxFit.cover),
-            Container(
-              height: constraints.maxHeight * 0.55,
-              child: Column(
-                children: <Widget>[
-                  Text("Welcome",
-                      textAlign: TextAlign.center, style: kTitleText),
-                  SizedBox(
-                    height: constraints.maxHeight * 0.01,
-                  ),
-                  Text(
-                    "Login to continue",
-                    textAlign: TextAlign.center,
-                    style: kLabelText,
-                  ),
-                  SizedBox(height: constraints.maxHeight * 0.05),
-                  LoginTextField(
-                    label: "Username/Email",
-                    icon: Icons.mail_outline,
-                    isObscure: false,
-                    controller: usernameController,
-                  ),
-                  SizedBox(height: constraints.maxHeight * 0.03),
-                  LoginTextField(
-                    label: "Password",
-                    icon: Icons.lock_outline,
-                    isObscure: true,
-                    controller: passwordController,
-                  ),
-                  SizedBox(height: constraints.maxHeight * 0.03),
-                  Container(
-                    margin: EdgeInsets.only(left: constraints.maxWidth * 0.05),
-                    width: constraints.maxWidth * 0.8,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (cntx) => RegisterScreen()));
-                      },
-                      child: Text(
-                        "Create Account",
-                        style: TextStyle(color: Colors.lightBlue, fontSize: 14),
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Container(
+          width: double.infinity,
+          height: MediaQuery.of(context).size.height * 1,
+          child: LayoutBuilder(builder: (cntx, constraints) {
+            return Column(
+              children: <Widget>[
+                Image.asset("assets/images/loginbg.png",
+                    width: double.infinity,
+                    height: constraints.maxHeight * 0.45,
+                    fit: BoxFit.cover),
+                Container(
+                  height: constraints.maxHeight * 0.55,
+                  child: Column(
+                    children: <Widget>[
+                      Text("Welcome",
+                          textAlign: TextAlign.center, style: kTitleText),
+                      SizedBox(
+                        height: constraints.maxHeight * 0.01,
                       ),
-                    ),
-                  ),
-                  SizedBox(height: constraints.maxHeight * 0.05),
-                  Center(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Color(0xFFF9B601),
-                        borderRadius: BorderRadius.circular(15),
+                      Text(
+                        "Login to continue",
+                        textAlign: TextAlign.center,
+                        style: kLabelText,
                       ),
-                      width: constraints.maxWidth * 0.7,
-                      child: FlatButton(
-                        onPressed: () {
-                          _authenticateUser(
-                              usernameController.text, passwordController.text);
-                        },
-                        child: Text("LOGIN",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
+                      SizedBox(height: constraints.maxHeight * 0.05),
+                      LoginTextField(
+                        label: "Username/Email",
+                        icon: Icons.mail_outline,
+                        isObscure: false,
+                        controller: usernameController,
                       ),
-                    ),
+                      SizedBox(height: constraints.maxHeight * 0.03),
+                      LoginTextField(
+                        label: "Password",
+                        icon: Icons.lock_outline,
+                        isObscure: true,
+                        controller: passwordController,
+                      ),
+                      SizedBox(height: constraints.maxHeight * 0.03),
+                      Container(
+                        margin: EdgeInsets.only(left: constraints.maxWidth * 0.05),
+                        width: constraints.maxWidth * 0.8,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (cntx) => RegisterScreen()));
+                          },
+                          child: Text(
+                            "Create Account",
+                            style: TextStyle(color: Colors.lightBlue, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: constraints.maxHeight * 0.05),
+                      Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFF9B601),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          width: constraints.maxWidth * 0.7,
+                          child: FlatButton(
+                            onPressed: () {
+                              _authenticateUser(
+                                  usernameController.text, passwordController.text);
+                            },
+                            child: Text("LOGIN",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ],
-        );
-      }),
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
     );
   }
 
   Future<void> _authenticateUser(String username, String password) async {
     final response = await http.post(
-        "http://api.faithstreams.net/api/User/authenticate",
+        "$baseAddress/api/User/authenticate",
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -126,7 +133,13 @@ class _LoginScreenState extends State<LoginScreen> {
         sph.setUserId("${json.decode(response.body)['data']['id']}");
         sph.setIsLogin(true);
         sph.setMemberId("${json.decode(response.body)['data']['memberInfo']['id']}");
-        Navigator.of(context).push(MaterialPageRoute(builder: (cntx) => HomeScreen()));
+        sph.setProfileImage("${json.decode(response.body)['data']['memberInfo']['profileImage']}");
+        await writeProfileImage("${json.decode(response.body)['data']['memberInfo']['profileImage']}");
+        print(await readProfileImage());
+        sph.setFirstName("${json.decode(response.body)['data']['firstName']}");
+        sph.setLastName("${json.decode(response.body)['data']['lastName']}");
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (cntx) => HomeScreen()));
       }
       return true;
     } else {
